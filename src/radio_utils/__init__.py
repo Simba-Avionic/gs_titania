@@ -29,6 +29,7 @@ def detect_baud_rate(port):
                 time.sleep(1)
                 response = ser.read_all().decode(errors='ignore').strip()
                 if 'SiK' in response:
+                    ser.write(b'ATO') # leave command mode
                     return baud
         except serial.SerialException:
             pass
@@ -90,11 +91,11 @@ def display_parameters_descriptions():
 
     S1:SERIAL_SPEED=<value>
     Command: ATS1?
-    Description: The baud rate for communication between the radio and the connected device (e.g., 4, 8, 16, 32, 64, 128 kbps).
+    Description: The baud rate for communication between the radio and the connected device (57 = 57600bps).
 
     S2:AIR_SPEED=<value>
     Command: ATS2?
-    Description: The data transmission rate over the air between radios (e.g., 4, 8, 16, 32, 64, 128 kbps).
+    Description: The data transmission rate over the air between radios (between 1 and 256 kbs)
 
     S3:NETID=<value>
     Command: ATS3?
@@ -153,6 +154,7 @@ def display_parameters_descriptions():
 def display_ATI_commands():
     ATI_commands = """
     The AT commands available are:
+    +++ - enter command mode
     ATI - show radio version
     ATI2 - show board type
     ATI3 - show board frequency
@@ -171,20 +173,123 @@ def display_ATI_commands():
     AT&T - disable debug reporting"""
     print(ATI_commands)
 
+    ## Parsing Methods ##
+def parse_ati5_response(response):
+    """
+    Parse the response from the ATI5 command into a dictionary.
+    Args:
+        response (str): The ATI5 command response string.
+    Returns:
+        dict: A dictionary with parameter names as keys and their corresponding values.
+    """
+    # Remove leading and trailing whitespace and split the response into lines
+    lines = response.strip().split('\r\n')
+    # Initialize an empty dictionary to hold the parameters
+    parameters = {}
+    # Iterate over each line and split by '=' to form key-value pairs
+    for line in lines:
+        if line.startswith('S'):
+            key, value = line.split('=')
+            parameters[key] = int(value)
+    return parameters
+
+def parse_ati6_response(response):
+    """
+    Parses the response from the ATI6 command to extract TDM timing report details.
+    Args:
+        response (str): The response string from the ATI6 command.
+    Returns:
+        dict: A dictionary containing the parsed values.
+    """
+    result = {
+        'silence_period': None, # indicates the time interval when no data transmission occurs.
+        'tx_window_width': None,
+        'max_data_packet_length': None 
+    }
+    
+    match = re.search(r'silence_period: (\d+)', response)
+    if match:
+        result['silence_period'] = int(match.group(1))
+    match = re.search(r'tx_window_width: (\d+)', response)
+    if match:
+        result['tx_window_width'] = int(match.group(1))
+    match = re.search(r'max_data_packet_length: (\d+)', response)
+    if match:
+        result['max_data_packet_length'] = int(match.group(1))
+    return result
+
+def parse_ati7_response(response):
+    """
+    Parses the response from the ATI7 command to extract RSSI and other diagnostics.
+    Args:
+        response (str): The response string from the ATI7 command.
+    Returns:
+        dict: A dictionary containing the parsed values.
+    """
+    result = {
+        'L_RSSI': None, # local
+        'R_RSSI': None, # remote
+        'L_noise': None,
+        'R_noise': None,
+        'packets': None, # number of packets processed
+        'tx_errors': None, # transmit errors
+        'rx_errors': None, #  receive errors
+        'successful_tx': None,
+        'successful_rx': None,
+        'ecc_corrected': None,
+        'ecc_uncorrected': None,
+        'temperature': None,
+        'dco': None # number of DC offset corrections
+    }
+    
+    match = re.search(r'L/R RSSI: (\d+)/(\d+)', response)
+    if match:
+        result['L_RSSI'] = int(match.group(1))
+        result['R_RSSI'] = int(match.group(2))
+    match = re.search(r'L/R noise: (\d+)/(\d+)', response)
+    if match:
+        result['L_noise'] = int(match.group(1))
+        result['R_noise'] = int(match.group(2))
+    match = re.search(r'pkts: (\d+)', response)
+    if match:
+        result['packets'] = int(match.group(1))
+    match = re.search(r'txe=(\d+)', response)
+    if match:
+        result['tx_errors'] = int(match.group(1))
+    match = re.search(r'rxe=(\d+)', response)
+    if match:
+        result['rx_errors'] = int(match.group(1))
+    match = re.search(r'stx=(\d+)', response)
+    if match:
+        result['successful_tx'] = int(match.group(1))
+    match = re.search(r'srx=(\d+)', response)
+    if match:
+        result['successful_rx'] = int(match.group(1))
+    match = re.search(r'ecc=(\d+)/(\d+)', response)
+    if match:
+        result['ecc_corrected'] = int(match.group(1))
+        result['ecc_uncorrected'] = int(match.group(2))
+    match = re.search(r'temp=(-?\d+)', response)
+    if match:
+        result['temperature'] = int(match.group(1))
+    match = re.search(r'dco=(\d+)', response)
+    if match:
+        result['dco'] = int(match.group(1))
+    return result
+
 class RadioModule(serial.Serial):
     def __init__(self, serial_port, baud_rate, timeout=1):
         super().__init__(port=serial_port, baudrate=baud_rate, timeout=timeout)
-        self.command_mode_active = False
         # useful parent funcs
         # .read_all()
         # .write()
     def __del__(self) -> None:
-        self.leave_command_mode()
+        # self.leave_command_mode() # might be the reason for inconsistent behaviour (?)
         return super().__del__()
 
     ## setters ##
     def send_at_command(self, command):
-        pattern = re.compile(r'^ATI(2|3|4|5|6|7)?$|^ATO$|^ATS\d+(\?|(=\d+))$|^ATZ$|^AT&W$|^AT&F$|^AT&T(=RSSI|=TDM)?$')
+        pattern = re.compile(r'^\+\+\+$|^ATI(2|3|4|5|6|7)?$|^ATO$|^ATS\d+(\?|(=\d+))$|^ATZ$|^AT&W$|^AT&F$|^AT&T(=RSSI|=TDM)?$')
         if not pattern.match(command):
             print('Invalid AT command: ' + command)
             display_ATI_commands()
@@ -195,10 +300,10 @@ class RadioModule(serial.Serial):
         return response
 
     def enter_command_mode(self, verbose = False):
-        if self.command_mode_active or ('SiK' in self.send_at_command('ATI')):
+        if ('SiK' in self.send_at_command('ATI')):
+            time.sleep(1)
             if verbose:
                 print("Already in command mode")
-            self.command_mode_active = True
             return True
         for _ in range(3):  # Try multiple times
             self.flushInput()
@@ -207,18 +312,14 @@ class RadioModule(serial.Serial):
             self.write(b'+++')
             time.sleep(1)
             if 'SiK' in self.send_at_command('ATI'):
-                self.command_mode_active = True
                 return True
         return False
 
     def leave_command_mode(self):
-        if not self.command_mode_active:
-            return True
         self.send_at_command('ATO')
-        self.command_mode_active = False
 
     def set_transmit_power(self, power):
-        valid_powers = [1, 2, 5, 8, 11, 14, 17, 20]
+        valid_powers = [1, 2, 5, 8, 11, 14, 17, 20] # max 20dbm, if not one of these it will be set implicitly anyway to the higher one
         if power not in valid_powers:
             print(f"Invalid power level: {power}. Valid levels: {valid_powers}")
             return
@@ -227,122 +328,21 @@ class RadioModule(serial.Serial):
             response = self.send_at_command(f'ATS4={power}')
             if 'OK' in response:
                 if 'OK' in self.send_at_command('AT&W'):
-                    print('Successfully set and saved transmit power to EEPROM.')
+                    print(f'Successfully set transmit power to {power} dBm and saved to EEPROM.')
+                    return True
                 else:
                     print('Failed to save to EEPROM.')
             else:
                 print('Failed to set transmit power.')
         else:
             print("Failed to enter command mode")
+        return False
 
-    ## Parsing Methods ##
-    def parse_ati7_response(self, response):
-        """
-        Parses the response from the ATI7 command to extract RSSI and other diagnostics.
-
-        Args:
-            response (str): The response string from the ATI7 command.
-
-        Returns:
-            dict: A dictionary containing the parsed values.
-        """
-        result = {
-            'L_RSSI': None, # local
-            'R_RSSI': None, # remote
-            'L_noise': None,
-            'R_noise': None,
-            'packets': None, # number of packets processed
-            'tx_errors': None, # transmit errors
-            'rx_errors': None, #  receive errors
-            'successful_tx': None,
-            'successful_rx': None,
-            'ecc_corrected': None,
-            'ecc_uncorrected': None,
-            'temperature': None,
-            'dco': None # number of DC offset corrections
-        }
-        
-        match = re.search(r'L/R RSSI: (\d+)/(\d+)', response)
-        if match:
-            result['L_RSSI'] = int(match.group(1))
-            result['R_RSSI'] = int(match.group(2))
-
-        match = re.search(r'L/R noise: (\d+)/(\d+)', response)
-        if match:
-            result['L_noise'] = int(match.group(1))
-            result['R_noise'] = int(match.group(2))
-
-        match = re.search(r'pkts: (\d+)', response)
-        if match:
-            result['packets'] = int(match.group(1))
-
-        match = re.search(r'txe=(\d+)', response)
-        if match:
-            result['tx_errors'] = int(match.group(1))
-
-        match = re.search(r'rxe=(\d+)', response)
-        if match:
-            result['rx_errors'] = int(match.group(1))
-
-        match = re.search(r'stx=(\d+)', response)
-        if match:
-            result['successful_tx'] = int(match.group(1))
-
-        match = re.search(r'srx=(\d+)', response)
-        if match:
-            result['successful_rx'] = int(match.group(1))
-
-        match = re.search(r'ecc=(\d+)/(\d+)', response)
-        if match:
-            result['ecc_corrected'] = int(match.group(1))
-            result['ecc_uncorrected'] = int(match.group(2))
-
-        match = re.search(r'temp=(-?\d+)', response)
-        if match:
-            result['temperature'] = int(match.group(1))
-
-        match = re.search(r'dco=(\d+)', response)
-        if match:
-            result['dco'] = int(match.group(1))
-
-        return result
-    
-    def parse_ati6_response(self, response):
-        """
-        Parses the response from the ATI6 command to extract TDM timing report details.
-
-        Args:
-            response (str): The response string from the ATI6 command.
-
-        Returns:
-            dict: A dictionary containing the parsed values.
-        """
-        result = {
-            'silence_period': None, # indicates the time interval when no data transmission occurs.
-            'tx_window_width': None,
-            'max_data_packet_length': None 
-        }
-        
-        match = re.search(r'silence_period: (\d+)', response)
-        if match:
-            result['silence_period'] = int(match.group(1))
-
-        match = re.search(r'tx_window_width: (\d+)', response)
-        if match:
-            result['tx_window_width'] = int(match.group(1))
-
-        match = re.search(r'max_data_packet_length: (\d+)', response)
-        if match:
-            result['max_data_packet_length'] = int(match.group(1))
-
-        return result
-    
     ## getters ##
-    def display_current_parameters(self):
+    def get_current_parameters(self):
         if self.enter_command_mode():
             response = self.send_at_command('ATI5')
-            print(response)
-            self.leave_command_mode()
+            return parse_ati5_response(response)
         else:
             print("Failed to enter command mode")
     
@@ -354,22 +354,23 @@ class RadioModule(serial.Serial):
             response (str): The response string from the ATI6 command.
         """
         if self.enter_command_mode():
-            tdm_report = self.parse_ati6_response(self.send_at_command('ATI6'))
-            rssi_report = self.parse_ati7_response(self.send_at_command('ATI7'))
+            tdm_report = parse_ati6_response(self.send_at_command('ATI6'))
+            rssi_report = parse_ati7_response(self.send_at_command('ATI7'))
             return tdm_report, rssi_report
         else:
             print("Failed to enter command mode")
             return
 
 # if __name__ == '__main__':
-#     selected_port, detected_baud = pick_pickables()
+#     # selected_port, detected_baud = pick_pickables()
 #     selected_port ='COM5'
 #     detected_baud = 57600
 #     if selected_port and detected_baud:
 #         radio = RadioModule(selected_port, detected_baud)
-#         radio.display_current_parameters()
+#         current_parameters = radio.get_current_parameters()
+#         print(current_parameters)
 #         # Change power as needed
-#         radio.set_transmit_power(1)  # Example power level to set
+#         radio.set_transmit_power(20)  # Example power level to set
 #         tdm_report, rssi_report = radio.get_output_data()
 #         print(rssi_report)
 #         print(tdm_report)

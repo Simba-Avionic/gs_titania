@@ -16,7 +16,7 @@ def main():
         # Enter AT command mode
         in_command_mode = radio.enter_command_mode()
         # Read parameters using ATI5
-        radio.display_current_parameters()
+        print(radio.get_current_parameters())
         # Exit AT command mode
         i += 1
     radio.leave_command_mode()
