@@ -5,6 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import radio_utils
 import csv
+from radio_utils.calculations import average_reports
 
 ## oba radia podłączone do tego samego urządzenia; wpływ wariacji mocy na resztę parametrów ##
 
@@ -45,20 +46,21 @@ def main():
         for power in range(1,21):
             if send_radio.set_transmit_power(power):
                 radio_utils.time.sleep(1) # guard
-                # for t in range(1,4): # potencjalnie wzięcie kilku próbek i późniejszego uśrednienia
-                # Send message
-                send_message(send_radio, MESSAGE)
-                print(f"Sent: {MESSAGE}")
-                
-                # Get telemetry data from receiving radio
-                tdm_report, rssi_report = receive_radio.get_output_data()
-                if tdm_report and rssi_report is not None:
-                    print(f"{tdm_report}\n{rssi_report}")
-                else:
-                    print("Failed to extract reports.")
-                
+                rssi_report_array = []
+                for t in range(1,4): # potencjalnie wzięcie kilku próbek i późniejszego uśrednienia
+                    # Send message
+                    send_message(send_radio, MESSAGE)
+                    print(f"Sent: {MESSAGE}")
+                    
+                    # Get telemetry data from receiving radio
+                    tdm_report, rssi_report = receive_radio.get_output_data()
+                    if tdm_report and rssi_report is not None:
+                        print(f"{tdm_report}\n{rssi_report}")
+                        rssi_report_array.append(rssi_report)
+                    else:
+                        print("Failed to extract reports.")
                 results_temp_dict = {'txPower' : power}
-                results_temp_dict.update(rssi_report)
+                results_temp_dict.update(average_reports(rssi_report_array))
 
                 results.append(results_temp_dict)
                 # Wait before sending the next message
