@@ -16,6 +16,7 @@ def main():
     try:
         with radio_utils.serial.Serial(selected_port, detected_baud, timeout=1) as ser:
             data_to_send = b'Pan szczekoscisk! Jak milo ze Pan wpadl'  # Data to send
+
             while True:
                 send_data(ser, data_to_send)
                 print(f'Sent: {data_to_send}')

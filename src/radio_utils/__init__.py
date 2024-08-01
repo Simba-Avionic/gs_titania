@@ -289,7 +289,7 @@ class RadioModule(serial.Serial):
 
     ## setters ##
     def send_at_command(self, command):
-        pattern = re.compile(r'^\+\+\+$|^ATI(2|3|4|5|6|7)?$|^ATO$|^ATS\d+(\?|(=\d+))$|^ATZ$|^AT&W$|^AT&F$|^AT&T(=RSSI|=TDM)?$')
+        pattern = re.compile(r'^(\+\+\+|ATI(2|3|4|5|6|7)?|RTI(2|3|4|5|6|7)?)$|^ATO$|^(ATS\d+(\?|(=\d+))|RTS\d+(\?|(=\d+)))$|^(ATZ|RTZ)$|^(AT&W|RT&W)$|^(AT&F|RT&F)$|^(AT&T(=RSSI|=TDM)?|RT&T(=RSSI|=TDM)?)$')
         if not pattern.match(command):
             print('Invalid AT command: ' + command)
             display_ATI_commands()
@@ -318,14 +318,16 @@ class RadioModule(serial.Serial):
     def leave_command_mode(self):
         self.send_at_command('ATO')
 
-    def set_transmit_power(self, power):
+    def set_transmit_power(self, power, remote = False):
         valid_powers = [1, 2, 5, 8, 11, 14, 17, 20] # max 20dbm, if not one of these it will be set implicitly anyway to the higher one
         if power not in valid_powers:
             print(f"Invalid power level: {power}. Valid levels: {valid_powers}")
             return
-
         if self.enter_command_mode():
-            response = self.send_at_command(f'ATS4={power}')
+            if remote:
+                response = self.send_at_command(f'RTS4={power}')
+            else:
+                response = self.send_at_command(f'ATS4={power}')
             if 'OK' in response:
                 if 'OK' in self.send_at_command('AT&W'):
                     print(f'Successfully set transmit power to {power} dBm and saved to EEPROM.')
@@ -337,16 +339,41 @@ class RadioModule(serial.Serial):
         else:
             print("Failed to enter command mode")
         return False
+    
+    def set_air_rate(self, air_rate):
+        valid_air_rates = [2, 4, 8, 16, 19, 24, 32, 48, 64, 96, 128, 192, 250] # if not one of these it will be set implicitly anyway to the higher one
+        if air_rate not in valid_air_rates:
+            print(f"Invalid air rate: {air_rate}. Valid levels: {valid_air_rates}")
+            return
+        if self.enter_command_mode():
+            response = self.send_at_command(f'RTS2={air_rate}')
+            if 'OK' not in response:
+                print("failed to set air rate in the receiver")
+            response = self.send_at_command(f'ATS2={air_rate}')
+            if 'OK' in response:
+                if 'OK' in self.send_at_command('AT&W'):
+                    print(f'Successfully set air rate to {air_rate} kbs and saved to EEPROM.')
+                    return True
+                else:
+                    print('Failed to save to EEPROM.')
+            else:
+                print('Failed to set transmit power.')
+        else:
+            print("Failed to enter command mode")
+        return False
 
     ## getters ##
-    def get_current_parameters(self):
+    def get_current_parameters(self,remote=False):
         if self.enter_command_mode():
-            response = self.send_at_command('ATI5')
+            if remote:
+                response = self.send_at_command('RTI5')
+            else:
+                response = self.send_at_command('ATI5')
             return parse_ati5_response(response)
         else:
             print("Failed to enter command mode")
     
-    def get_output_data(self):
+    def get_output_data(self,remote=False):
         """
         Extracts a tdm and rssi reports as tuple of dicts
 
@@ -354,8 +381,12 @@ class RadioModule(serial.Serial):
             response (str): The response string from the ATI6 command.
         """
         if self.enter_command_mode():
-            tdm_report = parse_ati6_response(self.send_at_command('ATI6'))
-            rssi_report = parse_ati7_response(self.send_at_command('ATI7'))
+            if remote:
+                tdm_report = parse_ati6_response(self.send_at_command('RTI6'))
+                rssi_report = parse_ati7_response(self.send_at_command('RTI7'))
+            else:
+                tdm_report = parse_ati6_response(self.send_at_command('ATI6'))
+                rssi_report = parse_ati7_response(self.send_at_command('ATI7'))
             return tdm_report, rssi_report
         else:
             print("Failed to enter command mode")
