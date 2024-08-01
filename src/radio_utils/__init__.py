@@ -295,7 +295,7 @@ class RadioModule(serial.Serial):
             display_ATI_commands()
             return ''
         self.write(command.encode() + b'\r\n')
-        time.sleep(1)
+        time.sleep(2)
         response = self.read_all().decode(errors='ignore').strip()
         return response
 
@@ -348,7 +348,7 @@ class RadioModule(serial.Serial):
         if self.enter_command_mode():
             response = self.send_at_command(f'RTS2={air_rate}')
             if 'OK' not in response:
-                print("failed to set air rate in the receiver")
+                print("failed to set air rate in the receiver") # sometimes it sets anyway - might not get OK in time - perhaps check parameters instead? retry if not set
             response = self.send_at_command(f'ATS2={air_rate}')
             if 'OK' in response:
                 if 'OK' in self.send_at_command('AT&W'):

@@ -7,8 +7,12 @@ def dbm2rssi(dbm_val):
 def average_reports(report_array):
     averaged_report = {}
     for key in report_array[0]:
-        total = sum(d[key] for d in report_array)
-        averaged_report[key] = total / len(report_array)
+        values = [d[key] for d in report_array if d[key] is not None]
+        if values:
+            total = sum(values)
+            averaged_report[key] = total / len(values)
+        else:
+            averaged_report[key] = 0
     return averaged_report
 
 # def estimate_distance(freq,rssi_local,rssi_remote):

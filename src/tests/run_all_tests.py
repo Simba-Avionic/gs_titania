@@ -4,30 +4,29 @@ import sys
 
 FILEPATH = os.path.dirname(__file__)
 
-TESTS_TO_RUN = ['power_test.py']
+TESTS_TO_RUN = ['power_test.py', 'air_rate_test.py']
 
 PORT = 'COM5'
 BAUD_RATE = 57600
 
+# doesn't work as intended - doesn't print stuff to console until it's finished
+
 def run_python_script(script_path, PORT, BAUD_RATE):
     # Construct the command to run the Python script
-    command = [sys.executable, script_path] + [PORT, BAUD_RATE]
+    command = [sys.executable, script_path, PORT, BAUD_RATE]
 
     # Execute the command
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
+
     # Read stdout and stderr line by line
-    for stdout_line in iter(process.stdout.readline, ""):
-        print(stdout_line, end='')  # Print each line as it is produced
+    with process.stdout as stdout, process.stderr as stderr:
+        for stdout_line in iter(stdout.readline, ""):
+            print(stdout_line, end='')  # Print each line as it is produced
 
-    process.stdout.close()
+        for stderr_line in iter(stderr.readline, ""):
+            print(stderr_line, end='')
+
     process.wait()  # Wait for the process to complete
-
-    # Print any remaining stderr output
-    for stderr_line in process.stderr:
-        print(stderr_line, end='')
-    
-    process.stderr.close()
 
 if __name__ == "__main__":
     for test_name in TESTS_TO_RUN:

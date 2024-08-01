@@ -7,7 +7,7 @@ import radio_utils
 from radio_utils.calculations import average_reports
 import radio_utils.testing
 
-# Tests the effect of changing transmitter power 
+# Tests the effect of changing transmitter air_rate 
 
 MESSAGE = 'Pan Szczekoscisk!'  # Message to send
 INTERVAL = 1  # Interval between sends in seconds
@@ -29,8 +29,9 @@ def main(serial_port,baud_rate):
     results = []
 
     try:
-        for power in [1, 2, 5, 8, 11, 14, 17, 20] :
-            if transmitter.set_transmit_power(power):
+        transmitter.set_transmit_power(20)
+        for air_rate in [64, 96, 128, 192, 250]: # [2, 4, 8, 16, 19, 24, 32, 48, 64, 96, 128, 192, 250]
+            if transmitter.set_air_rate(air_rate):
                 radio_utils.time.sleep(1) # guard
                 rssi_report_array = []
                 for t in range(1,4): 
@@ -45,14 +46,14 @@ def main(serial_port,baud_rate):
                         rssi_report_array.append(rssi_report)
                     else:
                         print("Failed to extract reports.")
-                results_temp_dict = {'txPower' : power}
+                results_temp_dict = {'air_rate' : air_rate}
                 results_temp_dict.update(average_reports(rssi_report_array))
 
                 results.append(results_temp_dict)
     except KeyboardInterrupt:
         print("Stopping transmission.")
 
-    radio_utils.testing.write_results_to_csv(results,f'{FILEPATH}/results_power_var_obtained_remotely.csv')
+    radio_utils.testing.write_results_to_csv(results,f'{FILEPATH}/results_air_rate_var_obtained_remotely.csv')
 
 if __name__ == "__main__":
     try: 

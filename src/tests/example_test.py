@@ -60,6 +60,6 @@ def main():
     except KeyboardInterrupt:
         print("Stopping transmission.")
 
-    radio_utils.write_results_to_csv(results,f'{FILEPATH}/results_power_var.csv')
+    radio_utils.testing.write_results_to_csv(results,f'{FILEPATH}/results_power_var.csv')
 if __name__ == "__main__":
     main()
