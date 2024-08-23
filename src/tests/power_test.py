@@ -9,13 +9,17 @@ import radio_utils.testing
 
 # Tests the effect of changing transmitter power 
 
-MESSAGE = 'Pan Szczekoscisk!'  # Message to send
+MESSAGE = [1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1]  # Message to send
 INTERVAL = 1  # Interval between sends in seconds
 FILEPATH = os.path.dirname(__file__)
 
 
 def send_message(serial_port, message):
     """Send a message through the serial port."""
+    # Convert list of bits to a string
+    if isinstance(message, list):
+        message = ''.join(map(str, message))  # Join list of integers as a string
+    # Send the message with carriage return and newline
     serial_port.write((message + '\r\n').encode())
 
 def main(serial_port,baud_rate):
@@ -27,6 +31,9 @@ def main(serial_port,baud_rate):
     print(transmitter.get_current_parameters(remote=True))
     
     results = []
+
+    # transmitter.set_mav_link(0) # czy oba musza miec to samo ustawienie?
+    # transmitter.set_eec(0) # czy oba musza miec to samo ustawienie?
 
     try:
         for power in [1, 2, 5, 8, 11, 14, 17, 20] :

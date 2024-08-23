@@ -361,6 +361,48 @@ class RadioModule(serial.Serial):
         else:
             print("Failed to enter command mode")
         return False
+    def set_mav_link(self, mav_link_option, remote = False):
+        valid_mav_link_options = [0, 1, 2]
+        if mav_link_option not in valid_mav_link_options:
+            print(f"Invalid mav link option: {mav_link_option}. Valid options: {valid_mav_link_options}")
+            return
+        if self.enter_command_mode():
+            if remote:
+                response = self.send_at_command(f'RTS6={mav_link_option}')
+            else:
+                response = self.send_at_command(f'ATS6={mav_link_option}')
+            if 'OK' in response:
+                if 'OK' in self.send_at_command('AT&W'):
+                    print(f'Successfully set mav link option to {mav_link_option} and saved to EEPROM.')
+                    return True
+                else:
+                    print('Failed to save to EEPROM.')
+            else:
+                print('Failed to set transmit power.')
+        else:
+            print("Failed to enter command mode")
+        return False
+    def set_eec(self, eec_op, remote = False):
+        valid_eec_op = [0, 1]
+        if eec_op not in valid_eec_op:
+            print(f"Invalid eec option: {eec_op}. Valid options: {valid_eec_op}")
+            return
+        if self.enter_command_mode():
+            if remote:
+                response = self.send_at_command(f'RTS5={eec_op}')
+            else:
+                response = self.send_at_command(f'ATS5={eec_op}')
+            if 'OK' in response:
+                if 'OK' in self.send_at_command('AT&W'):
+                    print(f'Successfully set EEC option to {eec_op} and saved to EEPROM.')
+                    return True
+                else:
+                    print('Failed to save to EEPROM.')
+            else:
+                print('Failed to set transmit power.')
+        else:
+            print("Failed to enter command mode")
+        return False
 
     ## getters ##
     def get_current_parameters(self,remote=False):
