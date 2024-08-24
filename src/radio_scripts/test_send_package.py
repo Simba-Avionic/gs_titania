@@ -14,17 +14,22 @@ def receive_data(serial_conn):
 def main():
     selected_port, detected_baud = radio_utils.pick_pickables()
     try:
+        i = 1
         with radio_utils.serial.Serial(selected_port, detected_baud, timeout=1) as ser:
-            data_to_send = b'Pan szczekoscisk! Jak milo ze Pan wpadl'  # Data to send
 
             while True:
-                send_data(ser, data_to_send)
+                data_to_send = f'{i}'  # Data to send
+
+                send_data(ser, (data_to_send).encode())
                 print(f'Sent: {data_to_send}')
-                radio_utils.time.sleep(1)  # Send data every second
-                received_data = receive_data(ser)
-                if received_data:
-                     print(f'Received: {received_data}')
-                radio_utils.time.sleep(1)
+                ser.flushOutput()
+                print(ser.read_all())
+                radio_utils.time.sleep(0.1)  # Send data every second
+                # received_data = receive_data(ser)
+                # if received_data:
+                #      print(f'Received: {received_data}')
+                # radio_utils.time.sleep(1)
+                i = i + 1
     except radio_utils.serial.SerialException as e:
         print(f'Error: {e}')
     except Exception as e:

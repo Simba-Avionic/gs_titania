@@ -9,20 +9,20 @@ def send_data(serial_conn, data):
     serial_conn.write(data)
 
 def receive_data(serial_conn):
-    return serial_conn.read_all()
+    return serial_conn.read()
 
 def main():
     selected_port, detected_baud = radio_utils.pick_pickables()
     try:
-        with radio_utils.serial.Serial(selected_port, detected_baud, timeout=1) as ser:
+        with radio_utils.serial.Serial(selected_port, detected_baud, timeout=0.0001) as ser:
+            ser.flushInput()      
+            ser.flushOutput()              
             while True:
                 received_data = receive_data(ser)
+                # print(received_data)
                 if received_data:
                     print(f'Received: {received_data}')
-                    # Echo the received data back to the transmitter
-                    send_data(ser,received_data)
-                    print(f'Echoed back: {received_data}')
-                radio_utils.time.sleep(0.1)  # Check for received data every 100ms
+                    # ser.flushInput()                    
     except radio_utils.serial.SerialException as e:
         print(f'Error: {e}')
     except Exception as e:
