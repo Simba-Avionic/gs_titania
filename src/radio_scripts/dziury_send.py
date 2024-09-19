@@ -28,7 +28,7 @@ def main():
                 data_to_send = data_to_send + " " + str(checksum) + " S"
                 n = send_data(ser, (data_to_send).encode())
                 print(f'Sent {n} bytes: {data_to_send}')
-                radio_utils.time.sleep(0.01)  # Send data every second
+                radio_utils.time.sleep(0.01) 
                 i = i + 1
     except radio_utils.serial.SerialException as e:
         print(f'Error: {e}')

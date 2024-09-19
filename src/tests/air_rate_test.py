@@ -40,9 +40,9 @@ def main(serial_port,baud_rate):
                     print(f"Sent: {MESSAGE}")
                     
                     # Get telemetry data from receiving radio
-                    tdm_report, rssi_report = transmitter.get_output_data(remote=True)
-                    if tdm_report and rssi_report is not None:
-                        print(f"{tdm_report}\n{rssi_report}")
+                    rssi_report = transmitter.get_output_data(remote=True)
+                    if rssi_report is not None:
+                        print(f"{rssi_report}")
                         rssi_report_array.append(rssi_report)
                     else:
                         print("Failed to extract reports.")

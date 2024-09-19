@@ -13,14 +13,7 @@ DEFAULT_PARAMS = radio_utils.testing.DEFAULT_PARAMS
 # Force set values (for convenience sake):
 DEFAULT_PARAMS['S4:TXPOWER'] = 20
 DEFAULT_PARAMS['S2:AIR_SPEED'] = 2
-DEFAULT_PARAMS['S10:NUM_CHANNELS'] = 10
-
-# Pre-generate frames
-frame_16B = [radio_utils.testing.generate_random_frame(16) for _ in range(16)]
-# frame_64B = [radio_utils.testing.generate_random_frame(64) for _ in range(16)]
-# frame_200B = [radio_utils.testing.generate_random_frame(200) for _ in range(16)]
-    
-
+DEFAULT_PARAMS['S10:NUM_CHANNELS'] = 10    
 
 def main():
     # serial_port, baud_rate = radio_utils.pick_pickables()
@@ -30,9 +23,9 @@ def main():
     transmitter.flushInput()      
     transmitter.flushOutput()
 
-    transmitter.set_params_to_request(DEFAULT_PARAMS)
-
-    radio_utils.testing.send_frames_at_defined_speed(transmitter=transmitter,predefined_frames=frame_16B,number_of_frames_to_send=40,speed=1)
+    # transmitter.set_params_to_request(DEFAULT_PARAMS)
+    
+    radio_utils.testing.send_packets_at_defined_speed(transmitter=transmitter,predefined_packets=radio_utils.testing.DEFAULT_PACKET_LIST_16B,number_of_packets_to_send=1024,speed=64)
     
 
 if __name__ == "__main__":
