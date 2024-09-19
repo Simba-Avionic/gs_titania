@@ -277,6 +277,34 @@ def parse_ati7_response(response):
         result['dco'] = int(match.group(1))
     return result
 
+def compare_params(params1, params2):
+    """
+    Compares two parameters dicts and returns dict with parameters names as keys and booleans as its values (outputs True in dict if params1 and params2 have a mismatch in key name; if there's at least one mismatch returns dict)
+    Returns False value if both parameters lists are the same
+    """
+    output_dict = {}
+    false_count = 0
+    # Check for keys in params1
+    for key in params1:
+        if key in params2:
+            if params1[key] == params2[key]:
+                output_dict[key] = True
+            else:
+                output_dict[key] = False
+                false_count += 1
+        else:
+            output_dict[key] = True
+
+    # Check for keys in params2 not present in params1 (i.e. leave that val as it is)
+    for key in params2:
+        if key not in params1:
+            output_dict[key] = True
+    print(f'{false_count} parameters mistmatch(es) found from requested values')
+    if false_count == 0:
+        return False
+    return output_dict
+
+
 class RadioModule(serial.Serial):
     def __init__(self, serial_port, baud_rate, timeout=1):
         super().__init__(port=serial_port, baudrate=baud_rate, timeout=timeout)
@@ -295,8 +323,14 @@ class RadioModule(serial.Serial):
             display_ATI_commands()
             return ''
         self.write(command.encode() + b'\r\n')
+        print(f'sending {command} command to the radio')
         time.sleep(2)
         response = self.read_all().decode(errors='ignore').strip()
+        setter_pattern = re.compile(r'^(ATS\d+=\d+|RTS\d+=\d+)$')
+        if setter_pattern.match(command):
+            print(f'Setter command executed: {command}, Response: {response}')
+
+        
         return response
 
     def enter_command_mode(self, verbose = False):
@@ -404,6 +438,18 @@ class RadioModule(serial.Serial):
             print("Failed to enter command mode")
         return False
 
+    def set_params_to_request(self,requested_params) -> None:
+        current_params = self.get_current_parameters()
+        request_params_mismatch_dict = compare_params(current_params,requested_params)
+        if request_params_mismatch_dict:
+            for key, value in request_params_mismatch_dict.items():
+                if not value:
+                    s_parameter_num = key.split(':')[0]
+                    value_to_set = eval(f'requested_params[\'{key}\']')
+                    self.send_at_command(f'AT{s_parameter_num}={value_to_set}')
+        else:
+            print('Already set to requested values')
+
     ## getters ##
     def get_current_parameters(self,remote=False):
         if self.enter_command_mode():
@@ -415,21 +461,26 @@ class RadioModule(serial.Serial):
         else:
             print("Failed to enter command mode")
     
-    def get_output_data(self,remote=False):
+    def get_output_data(self,remote=False,get_timing_report=False):
         """
-        Extracts a tdm and rssi reports as tuple of dicts
+        Extracts either a tdm and rssi reports as tuple of dicts or just rssi report dict
 
         Args:
             response (str): The response string from the ATI6 command.
         """
         if self.enter_command_mode():
             if remote:
-                tdm_report = parse_ati6_response(self.send_at_command('RTI6'))
+                if get_timing_report:
+                    tdm_report = parse_ati6_response(self.send_at_command('RTI6'))
                 rssi_report = parse_ati7_response(self.send_at_command('RTI7'))
             else:
-                tdm_report = parse_ati6_response(self.send_at_command('ATI6'))
+                if get_timing_report:
+                    tdm_report = parse_ati6_response(self.send_at_command('ATI6'))
                 rssi_report = parse_ati7_response(self.send_at_command('ATI7'))
-            return tdm_report, rssi_report
+            if get_timing_report:
+                return tdm_report, rssi_report
+            else: 
+                return rssi_report
         else:
             print("Failed to enter command mode")
             return
