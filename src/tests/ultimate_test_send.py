@@ -90,7 +90,9 @@ def run_test(transmitter:radio_utils.RadioModule, power_list, air_rate_list, X_s
                                                     predefined_packets=packets_to_send,
                                                     number_of_packets_to_send=size_amount_speed[1],speed=size_amount_speed[2])
                     
-                    transmitter.write('ffffff'.encode())
+                    transmitter.write('ff'.encode())
+                    transmitter.write('ff'.encode())
+                    transmitter.write('ff'.encode())
                     transmitter.write(('a'+current_inputs_str +'o').encode()) 
                     transmitter.write(('a'+current_inputs_str +'o').encode()) 
                     radio_utils.time.sleep(3) # give some time to write results on receiver end
@@ -113,7 +115,7 @@ def run_test(transmitter:radio_utils.RadioModule, power_list, air_rate_list, X_s
     
 def test_R_01(transmitter:radio_utils.RadioModule):
     # run_test(transmitter, power_list=[20], air_rate_list=[2], X_speed = 2, Y_speed = 16)
-    run_test(transmitter, power_list=[20,17,11,1], air_rate_list=[2,16,64,250], X_speed = 2, Y_speed = 16,startFrom=108)
+    run_test(transmitter, power_list=[20,17,11,1], air_rate_list=[2,16,64,250], X_speed = 2, Y_speed = 16,startFrom=112)
 def test_R_02(transmitter:radio_utils.RadioModule):
     run_test(transmitter, power_list=[20,17,11,1], air_rate_list=[16,64,250], Y_speed = 16)
 
