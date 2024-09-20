@@ -91,6 +91,7 @@ def main():
                 all_received_bytes += current_byte.decode()
                 if current_byte.decode() == 'f':
                     all_received_bytes = all_received_bytes[:-1]
+                    all_received_bytes = all_received_bytes.replace('ATI\r\n','') # might leak in
                     current_inputs += receiver.read(50).decode()
                     current_inputs += receiver.read(50).decode()
                     current_inputs += receiver.read(50).decode()
