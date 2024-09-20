@@ -3,6 +3,7 @@ import time
 import serial.tools.list_ports
 import re
 
+serial.Serial.flush
 def detect_baud_rate(port):
     """
     Detects the baud rate of the connected SiK radio.
@@ -19,8 +20,8 @@ def detect_baud_rate(port):
         try:
             with serial.Serial(port, baud, timeout=1) as ser:
                 # Clear the buffer
-                ser.flushInput()
-                ser.flushOutput()
+                ser.reset_input_buffer()
+                ser.reset_output_buffer()
                 # Enter AT command mode
                 time.sleep(1)
                 ser.write(b'+++')
@@ -340,8 +341,8 @@ class RadioModule(serial.Serial):
                 print("Already in command mode")
             return True
         for _ in range(3):  # Try multiple times
-            self.flushInput()
-            self.flushOutput()
+            self.reset_input_buffer()
+            self.reset_output_buffer()
             time.sleep(1)
             self.write(b'+++')
             time.sleep(1)
@@ -381,6 +382,7 @@ class RadioModule(serial.Serial):
             return
         if self.enter_command_mode():
             response = self.send_at_command(f'RTS2={air_rate}')
+            time.sleep(0.5)
             if 'OK' not in response:
                 print("failed to set air rate in the receiver") # sometimes it sets anyway - might not get OK in time - perhaps check parameters instead? retry if not set
             response = self.send_at_command(f'ATS2={air_rate}')
@@ -499,3 +501,9 @@ class RadioModule(serial.Serial):
 #         print(rssi_report)
 #         print(tdm_report)
 #         radio.leave_command_mode()
+
+
+current_params = 'AMOUNT=128; PACKET_SPEED=8ofaAIR_SPD=2; TX_P=20; PACKET_SIZE=16B; PACKET_AMOUNT=128; PACKET_SPEED=8ofaAIR_SPD=2; TX_P=20; PACKET_SIZE=16B; PACfaAIR_SPD=2; TX_P=20; PACKET_SIZE=16B; PACKET_AMOUNT=128; PACKET_SPEED=8ofaAIR_SPD=2; TX_P=20; PACKET_SIZE=16B; PACKET_AMOUNT=128; PACKET_SPEED=8ofaAIR_SPD=2; TX_P=20; PACKET_SIZE=16B; PACKET_AMOUNT=128; PACKET_SPEED=8ofaAIR_SPD=2; TX_P=20; PACKET_SIZE=16B; PACKET_AMOUNT=128; PACKET_SPEED=8ofaAIR_SPD=2; TX_P=20; PACKET_SIZE=16B; PACKET_AMOUNT=128; PACKET_SPEED=8ofaAIR_SPD=2; TX_P=20; PACKET_SIZE=16'
+parsed_params = re.search(r'a(.*?)o', current_params).group(1)
+pairs = [pair.strip() for pair in parsed_params.split(';') if pair]
+print(pairs)

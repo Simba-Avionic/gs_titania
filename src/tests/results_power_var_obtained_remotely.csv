@@ -1,0 +1,3 @@
+txPower,L_RSSI,R_RSSI,L_noise,R_noise,packets,tx_errors,rx_errors,successful_tx,successful_rx,ecc_corrected,ecc_uncorrected,temperature,dco
+1,198.66666666666666,218.0,65.66666666666667,73.0,1904.0,0.0,0.0,0.0,0.0,0.0,0.0,45.0,0.0
+20,168.0,218.0,67.0,74.33333333333333,149.0,0.0,0.0,0.0,0.0,0.0,0.0,45.333333333333336,0.0

@@ -1,6 +1,7 @@
 import csv
 import random
 import time
+import os
 
 DEFAULT_PARAMS = {
     'S1:SERIAL_SPEED': 57,      # 57600 baudrate
@@ -22,12 +23,17 @@ DEFAULT_PACKET_LIST_64B = [b'A1L0S7T925R7IGNT697YH9KY05S9KFM1CZS22LSMQYE1I3ZGXYV
 DEFAULT_PACKET_LIST_16B = [b'ABQQB2Q83R7LUGCO', b'ACYSX3NWLHFIIVLO', b'AF4TKUF3D5SJXJ0O', b'A7UGVUZF25228BCO', b'ASR8I889H580C2YO', b'AR0E61HR6FBNIS7O', b'ATQVKTGS932K9JNO', b'ALLPWT2EZ25LG99O', b'AQV9MXYQU6IFBXSO', b'ALGUNMCDSX8WSEBO', b'A8X400YK9LB9TPBO', b'AM4T0YN4DG458HNO', b'AFVRNI47TWG3FS7O', b'AN3J4M692YKGR5QO', b'AWPQSW5F3STV8B5O', b'AD7SVJUWX0N1VZVO']
 
 
-def write_results_to_csv(results,filename):
+def write_results_to_csv(results, filename):
+    file_exists = os.path.exists(filename)
     keys = results[0].keys()
-    with open(filename, 'w', newline='') as output_file:
+    
+    with open(filename, 'a', newline='') as output_file:
         dict_writer = csv.DictWriter(output_file, fieldnames=keys)
-        dict_writer.writeheader()
-        dict_writer.writerows(results)
+        
+        if not file_exists:
+            dict_writer.writeheader()  # Write headers only if the file does not exist
+        
+        dict_writer.writerows(results)  # Append the rows
 
 def generate_random_packet(size: int) -> bytes:
     # Starts with alpha ends with omega
@@ -49,12 +55,18 @@ def generate_random_packet(size: int) -> bytes:
 def calculate_ber(sent_bits, received_bits) -> int:
     # Bit Error Rate calculation (BER)
     errors = sum(1 for s, r in zip(sent_bits, received_bits) if s != r)
-    return errors / len(sent_bits)
+    try:
+        return errors / len(sent_bits)
+    except ZeroDivisionError:
+        return 0
 
 def calculate_per(sent_packets, received_packets) -> int:
     # Packet Error Rate calculation (PER)
-    errors = sent_packets - received_packets
-    return errors / sent_packets
+    try:
+        errors = sent_packets - received_packets
+        return errors / sent_packets
+    except ZeroDivisionError:
+        return 0
 
 def send_packets_at_defined_speed(transmitter,predefined_packets:list[bytes],number_of_packets_to_send:int,speed:int):
    # assumes that predefined_packets are all the same size
