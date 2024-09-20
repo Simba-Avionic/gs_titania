@@ -384,7 +384,9 @@ class RadioModule(serial.Serial):
             response = self.send_at_command(f'RTS2={air_rate}')
             time.sleep(0.5)
             if 'OK' not in response:
-                print("failed to set air rate in the receiver") # sometimes it sets anyway - might not get OK in time - perhaps check parameters instead? retry if not set
+                print("failed to set air rate in the receiver, trying second time") # sometimes it sets anyway - might not get OK in time - perhaps check parameters instead? retry if not set
+                response = self.send_at_command(f'RTS2={air_rate}')
+                time.sleep(0.5)
             response = self.send_at_command(f'ATS2={air_rate}')
             if 'OK' in response:
                 if 'OK' in self.send_at_command('AT&W'):

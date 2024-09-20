@@ -58,15 +58,17 @@ def calculate_subtests_count(power_list, air_rate_list, X_speed=0, Y_speed=0):
             subtest_count += len(frame_combinations)
     return subtest_count * len(power_list)
 
-def run_test(transmitter:radio_utils.RadioModule, power_list, air_rate_list, X_speed = 0, Y_speed = 0):
+def run_test(transmitter:radio_utils.RadioModule, power_list, air_rate_list, X_speed = 0, Y_speed = 0, startFrom = 1):
     # x_speed - air rate at which bandwidth not required to be higher than 2kbps
     # y_speed - air rate at which bandwidth not required to be higher than 16kbps
     total_amount_subtests = calculate_subtests_count(power_list, air_rate_list, X_speed, Y_speed)
-    current_subtest = 1
+    current_subtest = 0
     for tx_p in power_list:
-        transmitter.set_transmit_power(tx_p)
+        if current_subtest >= startFrom:
+            transmitter.set_transmit_power(tx_p)
         for air_spd in air_rate_list:
-            transmitter.set_air_rate(air_spd)
+            if current_subtest >= startFrom:
+                transmitter.set_air_rate(air_spd)
             if air_spd == X_speed:
                 size_amount_speed_list = [[value[0], value[1], value[2]] for value in slower_than_2kbps.values()]
             elif air_spd == Y_speed:
@@ -74,27 +76,34 @@ def run_test(transmitter:radio_utils.RadioModule, power_list, air_rate_list, X_s
             else:
                 size_amount_speed_list = [[value[0], value[1], value[2]] for value in frame_combinations.values()]
             for size_amount_speed in size_amount_speed_list:
-                packets_to_send = eval(f't.DEFAULT_PACKET_LIST_{size_amount_speed[0]}B')
-                current_inputs_str = (f'AIR_SPD={air_spd}; TX_P={tx_p}; PACKET_SIZE={size_amount_speed[0]}B; PACKET_AMOUNT={size_amount_speed[1]}; PACKET_SPEED={size_amount_speed[2]}')
-                print(f'-------------------------------------------------------\nTEST: {current_subtest}/{total_amount_subtests}')
-                print(current_inputs_str)
-                t.send_packets_at_defined_speed(transmitter=transmitter,
-                                                predefined_packets=packets_to_send,
-                                                number_of_packets_to_send=size_amount_speed[1],speed=size_amount_speed[2])
+                current_subtest += 1
+                if current_subtest >= startFrom:
+                    if current_subtest == startFrom:
+                        transmitter.set_transmit_power(tx_p)
+                        transmitter.set_air_rate(air_spd)
                 
-                transmitter.write('ffffff'.encode())
-                transmitter.write(('a'+current_inputs_str +'o').encode()) 
-                transmitter.write(('a'+current_inputs_str +'o').encode()) 
-                radio_utils.time.sleep(3) # give some time to write results on receiver end
-                transmitter.reset_input_buffer()      
-                transmitter.reset_output_buffer()
+                    packets_to_send = eval(f't.DEFAULT_PACKET_LIST_{size_amount_speed[0]}B')
+                    current_inputs_str = (f'AIR_SPD={air_spd}; TX_P={tx_p}; PACKET_SIZE={size_amount_speed[0]}B; PACKET_AMOUNT={size_amount_speed[1]}; PACKET_SPEED={size_amount_speed[2]}')
+                    print(f'-------------------------------------------------------\nTEST: {current_subtest}/{total_amount_subtests}')
+                    print(current_inputs_str)
+                    t.send_packets_at_defined_speed(transmitter=transmitter,
+                                                    predefined_packets=packets_to_send,
+                                                    number_of_packets_to_send=size_amount_speed[1],speed=size_amount_speed[2])
+                    
+                    transmitter.write('ffffff'.encode())
+                    transmitter.write(('a'+current_inputs_str +'o').encode()) 
+                    transmitter.write(('a'+current_inputs_str +'o').encode()) 
+                    radio_utils.time.sleep(3) # give some time to write results on receiver end
+                    transmitter.reset_input_buffer()      
+                    transmitter.reset_output_buffer()
 
-                while True:
-                    # print(transmitter.read())
-                    if transmitter.read() == b'K':
-                        radio_utils.time.sleep(2)
-                        current_subtest += 1
-                        break
+                    while True:
+                        # print(transmitter.read())
+                        if transmitter.read() == b'K':
+                            radio_utils.time.sleep(2)
+                            break
+                else:
+                    continue
 
 
             transmitter.read_all()
@@ -104,7 +113,7 @@ def run_test(transmitter:radio_utils.RadioModule, power_list, air_rate_list, X_s
     
 def test_R_01(transmitter:radio_utils.RadioModule):
     # run_test(transmitter, power_list=[20], air_rate_list=[2], X_speed = 2, Y_speed = 16)
-    run_test(transmitter, power_list=[20,17,11,1], air_rate_list=[2,16,64,250], X_speed = 2, Y_speed = 16)
+    run_test(transmitter, power_list=[20,17,11,1], air_rate_list=[2,16,64,250], X_speed = 2, Y_speed = 16,startFrom=108)
 def test_R_02(transmitter:radio_utils.RadioModule):
     run_test(transmitter, power_list=[20,17,11,1], air_rate_list=[16,64,250], Y_speed = 16)
 
