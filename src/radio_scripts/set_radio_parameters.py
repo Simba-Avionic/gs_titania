@@ -27,10 +27,12 @@ requested_values = {
 
 if __name__ == '__main__':
     # serial_port, baud_rate = radio_utils.pick_pickables()
-    serial_port = 'COM5'
+    serial_port = 'COM7'
     baud_rate = 57600
     transmitter = radio_utils.RadioModule(serial_port, baud_rate)
     transmitter.set_params_to_request(requested_values)
+    transmitter.send_at_command('AT&W')
+    print(transmitter.get_current_parameters())
 
         
         

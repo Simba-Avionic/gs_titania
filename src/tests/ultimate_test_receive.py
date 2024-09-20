@@ -10,6 +10,9 @@ import re
 
 # Consts
 DEFAULT_PARAMS = radio_utils.testing.DEFAULT_PARAMS
+DEFAULT_PARAMS['S2:AIR_SPEED'] = 2
+# DEFAULT_PARAMS['S4:TXPOWER'] = 20
+# DEFAULT_PARAMS['S10:NUM_CHANNELS'] = 10
 DEFAULT_PACKET_LIST_200B = radio_utils.testing.DEFAULT_PACKET_LIST_200B
 DEFAULT_PACKET_LIST_64B = radio_utils.testing.DEFAULT_PACKET_LIST_64B
 DEFAULT_PACKET_LIST_16B = radio_utils.testing.DEFAULT_PACKET_LIST_16B
@@ -29,32 +32,32 @@ def parse_sent_inputs(current_inputs):
         return None
     
 
-# def create_repeated_bit_sequence(num_of_packages, size_of_package): # might have to reconsider and interpret BER as bytes error rate instead of bits error rate
-#     all_packages_concatenated = ''
-#     current_packet_set_used = eval(f'DEFAULT_PACKET_LIST_{size_of_package}')
-#     for i in range(num_of_packages):
-#         all_packages_concatenated += current_packet_set_used[i%len(current_packet_set_used)].decode()
-#         all_packages_concatenated = radio_utils.testing.str2bin(all_packages_concatenated)
-#     return all_packages_concatenated
-
-def create_repeated_byte_sequence(num_of_packages, size_of_package): 
+def create_repeated_bit_sequence(num_of_packages, size_of_package): 
     all_packages_concatenated = ''
     current_packet_set_used = eval(f'DEFAULT_PACKET_LIST_{size_of_package}')
     for i in range(num_of_packages):
         all_packages_concatenated += current_packet_set_used[i%len(current_packet_set_used)].decode()
+    all_packages_concatenated = radio_utils.testing.str2bin(all_packages_concatenated)
     return all_packages_concatenated
+
+# def create_repeated_byte_sequence(num_of_packages, size_of_package): 
+#     all_packages_concatenated = ''
+#     current_packet_set_used = eval(f'DEFAULT_PACKET_LIST_{size_of_package}')
+#     for i in range(num_of_packages):
+#         all_packages_concatenated += current_packet_set_used[i%len(current_packet_set_used)].decode()
+#     return all_packages_concatenated
 
 def create_csv_row(output_dict,current_inputs,all_received_bytes):
     result = []
-    # received_bits = t.str2bin(all_received_bytes)
+    received_bits = t.str2bin(all_received_bytes)
     input_dict = parse_sent_inputs(current_inputs)
     if type(input_dict) == None:
         sent_bytes = 0
         packets_sent = 0
     else:
-        sent_bytes = create_repeated_byte_sequence(int(input_dict['PACKET_AMOUNT']), input_dict['PACKET_SIZE'])
+        sent_bits = create_repeated_bit_sequence(int(input_dict['PACKET_AMOUNT']), input_dict['PACKET_SIZE'])
         packets_sent = int(input_dict['PACKET_AMOUNT'])
-    ber = t.calculate_ber(sent_bytes, all_received_bytes)
+    ber = t.calculate_ber(sent_bits, received_bits)
     packets_received = min(all_received_bytes.count("A"),all_received_bytes.count("O"))
     print(f'packets_received = {packets_received}')
     per = t.calculate_per(packets_sent,packets_received)
@@ -73,7 +76,7 @@ def main():
         receiver.flushInput()      
         receiver.flushOutput()
         receiver.read_all()
-        # receiver.set_params_to_request(DEFAULT_PARAMS) # can comment it out to save some time if already set ---> best/easiest way to edit params
+        receiver.set_params_to_request(DEFAULT_PARAMS) # can comment it out to save some time if already set ---> best/easiest way to edit params
         receiver.leave_command_mode()
         # print(receiver.get_current_parameters()) # can comment it out to save some time
         # print(receiver.get_current_parameters(remote=True)) # can comment it out to save some time
@@ -100,9 +103,9 @@ def main():
                     all_received_bytes = ''
                     receiver.flushInput()
                     receiver.flushOutput()
-                    for i in range(10):
+                    for i in range(5):
                         receiver.write('KKKKKKKKKKKKKKK'.encode())
-                        radio_utils.time.sleep(0.4)
+                        radio_utils.time.sleep(0.3)
                     receiver.flushInput()
                     receiver.flushOutput()
                     current_byte = ''

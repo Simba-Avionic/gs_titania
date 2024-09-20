@@ -501,9 +501,3 @@ class RadioModule(serial.Serial):
 #         print(rssi_report)
 #         print(tdm_report)
 #         radio.leave_command_mode()
-
-
-current_params = 'AMOUNT=128; PACKET_SPEED=8ofaAIR_SPD=2; TX_P=20; PACKET_SIZE=16B; PACKET_AMOUNT=128; PACKET_SPEED=8ofaAIR_SPD=2; TX_P=20; PACKET_SIZE=16B; PACfaAIR_SPD=2; TX_P=20; PACKET_SIZE=16B; PACKET_AMOUNT=128; PACKET_SPEED=8ofaAIR_SPD=2; TX_P=20; PACKET_SIZE=16B; PACKET_AMOUNT=128; PACKET_SPEED=8ofaAIR_SPD=2; TX_P=20; PACKET_SIZE=16B; PACKET_AMOUNT=128; PACKET_SPEED=8ofaAIR_SPD=2; TX_P=20; PACKET_SIZE=16B; PACKET_AMOUNT=128; PACKET_SPEED=8ofaAIR_SPD=2; TX_P=20; PACKET_SIZE=16B; PACKET_AMOUNT=128; PACKET_SPEED=8ofaAIR_SPD=2; TX_P=20; PACKET_SIZE=16'
-parsed_params = re.search(r'a(.*?)o', current_params).group(1)
-pairs = [pair.strip() for pair in parsed_params.split(';') if pair]
-print(pairs)
