@@ -10,7 +10,7 @@ import re
 
 # Consts
 DEFAULT_PARAMS = radio_utils.testing.DEFAULT_PARAMS
-DEFAULT_PARAMS['S2:AIR_SPEED'] = 2
+# DEFAULT_PARAMS['S2:AIR_SPEED'] = 2
 # DEFAULT_PARAMS['S4:TXPOWER'] = 20
 # DEFAULT_PARAMS['S10:NUM_CHANNELS'] = 10
 DEFAULT_PACKET_LIST_200B = radio_utils.testing.DEFAULT_PACKET_LIST_200B
@@ -22,6 +22,8 @@ def parse_sent_inputs(current_inputs):
     try:
         current_inputs = re.search(r'a(.*?)o', current_inputs).group(1)
         current_inputs = [pair.strip() for pair in current_inputs.split(';') if pair]
+        if current_inputs[2][-1:] == 'BB': # idk, happened once
+            current_inputs[2] = current_inputs[:-1]
         # Create a dictionary from the current_inputs
         result_dict = {}
         for pair in current_inputs:
@@ -55,7 +57,7 @@ def create_csv_row(output_dict,current_inputs,all_received_bytes:bytes):
     output_dict.update({'BER':ber, 'PER':per})
     input_dict.update(output_dict)
     result.append(input_dict)
-    t.write_results_to_csv(result,f'{FILEPATH}/ultimate_results.csv')
+    t.write_results_to_csv(result,f'{FILEPATH}/ultimate_results_received.csv')
 
 def ber_per_helper(input_dict,current_inputs,all_received_bytes):
     input_dict = parse_sent_inputs(current_inputs)
@@ -74,7 +76,7 @@ def ber_per_helper(input_dict,current_inputs,all_received_bytes):
 def main():
     # Init
     # serial_port, baud_rate = radio_utils.pick_pickables()
-    serial_port = 'COM7'
+    serial_port = 'COM6'
     baud_rate = 57600
     with radio_utils.RadioModule(serial_port, baud_rate, timeout=0.0001) as receiver: # idk why but that's the only way for read to work that i found
         receiver.reset_input_buffer()      
@@ -94,13 +96,15 @@ def main():
                 print(current_byte)
                 all_received_bytes += current_byte
                 if current_byte == b'#':
+                    all_received_bytes = all_received_bytes.replace(b'#',b'')
+                    # all_received_bytes = all_received_bytes.replace('ATI\r\n','') # might leak in?
                     while True:
                         receiver.write('@@@'.encode())
-                        radio_utils.time.sleep(1)
-                        current_inputs += receiver.read(100).decode()
-                        radio_utils.time.sleep(1)
-                        current_inputs += receiver.read(100).decode()
-                        if current_inputs:
+                        radio_utils.time.sleep(1.5)
+                        current_inputs += receiver.read(150).decode()
+                        radio_utils.time.sleep(1.5)
+                        current_inputs += receiver.read(150).decode()
+                        if 'PACKET_SIZE' in current_inputs:
                             print(current_inputs)
                             output_dict = receiver.get_output_data()
                             print(output_dict)
@@ -110,11 +114,10 @@ def main():
                             receiver.flushOutput()
                             radio_utils.time.sleep(0.4)
                             for i in range(5):
-                                receiver.write('@@@@@@@@@@@@@@@@@@@@@@@@@@'.encode())
+                                receiver.write('$$$$$$$$$$$$$$$$$$'.encode())
                                 radio_utils.time.sleep(0.4)
                             break    
-                    # all_received_bytes = all_received_bytes.replace('f','')
-                    # all_received_bytes = all_received_bytes.replace('ATI\r\n','') # might leak in
+                    
                     receiver.flushInput()
                     receiver.flushOutput()
                     current_byte = ''

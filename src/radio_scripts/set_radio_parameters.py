@@ -22,12 +22,12 @@ requested_values = {
     'S12:LBT_RSSI': 0, 
     'S13:MANCHESTER': 0, 
     'S14:RTSCTS': 0, 
-    'S15:MAX_WINDOW': 131
+    'S15:MAX_WINDOW': 100
 }
 
 if __name__ == '__main__':
     # serial_port, baud_rate = radio_utils.pick_pickables()
-    serial_port = 'COM7'
+    serial_port = 'COM5'
     baud_rate = 57600
     transmitter = radio_utils.RadioModule(serial_port, baud_rate)
     transmitter.set_params_to_request(requested_values)

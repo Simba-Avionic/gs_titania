@@ -10,9 +10,10 @@ import radio_utils.testing as t
 
 # Consts
 DEFAULT_PARAMS = radio_utils.testing.DEFAULT_PARAMS
-DEFAULT_PARAMS['S2:AIR_SPEED'] = 2
+# DEFAULT_PARAMS['S2:AIR_SPEED'] = 2
 # DEFAULT_PARAMS['S4:TXPOWER'] = 20
 # DEFAULT_PARAMS['S10:NUM_CHANNELS'] = 10
+FILEPATH = os.path.dirname(__file__)
 
 # Frame configurations: [frame_size, amount_of_frames, frame_ps, speed]
 frame_combinations = {
@@ -59,11 +60,15 @@ def calculate_subtests_count(power_list, air_rate_list, X_speed=0, Y_speed=0):
             subtest_count += len(frame_combinations)
     return subtest_count * len(power_list)
 
-def run_test(transmitter:radio_utils.RadioModule, power_list, air_rate_list, X_speed = 0, Y_speed = 0, startFrom = 1):
+def run_test(transmitter:radio_utils.RadioModule, power_list, air_rate_list, X_speed = 0, Y_speed = 0, startFrom = 1, log=True):
     # x_speed - air rate at which bandwidth not required to be higher than 2kbps
     # y_speed - air rate at which bandwidth not required to be higher than 16kbps
     total_amount_subtests = calculate_subtests_count(power_list, air_rate_list, X_speed, Y_speed)
     current_subtest = 0
+    if log:
+        log_file = open(f"{FILEPATH}/packets_sent_log.txt", "a")
+    else:
+        log_file = None
     for tx_p in power_list:
         if current_subtest >= startFrom:
             transmitter.set_transmit_power(tx_p)
@@ -89,7 +94,8 @@ def run_test(transmitter:radio_utils.RadioModule, power_list, air_rate_list, X_s
                     print(current_inputs_str)
                     t.send_packets_at_defined_speed(transmitter=transmitter,
                                                     predefined_packets=packets_to_send,
-                                                    number_of_packets_to_send=size_amount_speed[1],speed=size_amount_speed[2])
+                                                    number_of_packets_to_send=size_amount_speed[1],speed=size_amount_speed[2],
+                                                    log_file=log_file)
                     radio_utils.time.sleep(0.2)
                     while True:
                         transmitter.write('#'.encode())
@@ -99,17 +105,19 @@ def run_test(transmitter:radio_utils.RadioModule, power_list, air_rate_list, X_s
                             break
                     while True:
                         transmitter.write(('a'+current_inputs_str +'o').encode()) 
-                        if transmitter.read() == b'@':
-                            radio_utils.time.sleep(0.1)
+                        radio_utils.time.sleep(0.1)
+                        if transmitter.read() == b'$':
+                            list_to_save = []
+                            send_params = {'AIR_SPD':air_spd,'TX_P':tx_p,'PACKET_SIZE':f'{size_amount_speed[0]}B','PACKET_AMOUNT': size_amount_speed[1],'PACKET_SPEED':size_amount_speed[2]}
+                            output_dict = transmitter.get_output_data()
+                            print(output_dict)
+                            send_params.update(output_dict)
+                            list_to_save.append(send_params)
+                            t.write_results_to_csv(list_to_save,f'{FILEPATH}/ultimate_results_sent.csv')
+                            radio_utils.time.sleep(3) # give some time to write results on receiver end
+                            transmitter.reset_input_buffer()      
+                            transmitter.reset_output_buffer()
                             break                        
-                    radio_utils.time.sleep(1) # give some time to write results on receiver end
-                    transmitter.reset_input_buffer()      
-                    transmitter.reset_output_buffer()
-                    while True:
-                        # print(transmitter.read())
-                        if transmitter.read() == b'@':
-                            radio_utils.time.sleep(4)
-                            break
                 else:
                     continue
 
@@ -117,8 +125,8 @@ def run_test(transmitter:radio_utils.RadioModule, power_list, air_rate_list, X_s
             transmitter.read_all()
             transmitter.reset_input_buffer()      
             transmitter.reset_output_buffer()
-    transmitter.write('FINITO'.encode)
-    transmitter.write('FINITO'.encode)
+
+            print("FINITO y BASTA")
             
     
 def test_R_01(transmitter:radio_utils.RadioModule):
