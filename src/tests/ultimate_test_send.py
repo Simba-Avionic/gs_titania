@@ -42,6 +42,7 @@ def init():
     transmitter = radio_utils.RadioModule(serial_port, baud_rate,timeout=0.0001)
     transmitter.reset_input_buffer()      
     transmitter.reset_output_buffer()
+    transmitter.read_all()
     transmitter.set_params_to_request(DEFAULT_PARAMS) # can comment it out to save some time if already set ---> best/easiest way to edit params
     # print(transmitter.get_current_parameters()) # can comment it out to save some time
     # print(transmitter.get_current_parameters(remote=True)) # can comment it out to save some time
@@ -89,20 +90,25 @@ def run_test(transmitter:radio_utils.RadioModule, power_list, air_rate_list, X_s
                     t.send_packets_at_defined_speed(transmitter=transmitter,
                                                     predefined_packets=packets_to_send,
                                                     number_of_packets_to_send=size_amount_speed[1],speed=size_amount_speed[2])
-                    
-                    transmitter.write('ff'.encode())
-                    transmitter.write('ff'.encode())
-                    transmitter.write('ff'.encode())
-                    transmitter.write(('a'+current_inputs_str +'o').encode()) 
-                    transmitter.write(('a'+current_inputs_str +'o').encode()) 
-                    radio_utils.time.sleep(3) # give some time to write results on receiver end
+                    radio_utils.time.sleep(0.2)
+                    while True:
+                        transmitter.write('#'.encode())
+                        radio_utils.time.sleep(0.1)
+                        if transmitter.read() == b'@':
+                            radio_utils.time.sleep(0.1)
+                            break
+                    while True:
+                        transmitter.write(('a'+current_inputs_str +'o').encode()) 
+                        if transmitter.read() == b'@':
+                            radio_utils.time.sleep(0.1)
+                            break                        
+                    radio_utils.time.sleep(1) # give some time to write results on receiver end
                     transmitter.reset_input_buffer()      
                     transmitter.reset_output_buffer()
-
                     while True:
                         # print(transmitter.read())
-                        if transmitter.read() == b'K':
-                            radio_utils.time.sleep(2)
+                        if transmitter.read() == b'@':
+                            radio_utils.time.sleep(4)
                             break
                 else:
                     continue
@@ -111,18 +117,22 @@ def run_test(transmitter:radio_utils.RadioModule, power_list, air_rate_list, X_s
             transmitter.read_all()
             transmitter.reset_input_buffer()      
             transmitter.reset_output_buffer()
+    transmitter.write('FINITO'.encode)
+    transmitter.write('FINITO'.encode)
             
     
 def test_R_01(transmitter:radio_utils.RadioModule):
     # run_test(transmitter, power_list=[20], air_rate_list=[2], X_speed = 2, Y_speed = 16)
-    run_test(transmitter, power_list=[20,17,11,1], air_rate_list=[2,16,64,250], X_speed = 2, Y_speed = 16,startFrom=112)
+    run_test(transmitter, power_list=[20,17,11,1], air_rate_list=[2,16,64,250], X_speed = 2, Y_speed = 16,startFrom=1)
 def test_R_02(transmitter:radio_utils.RadioModule):
     run_test(transmitter, power_list=[20,17,11,1], air_rate_list=[16,64,250], Y_speed = 16)
+def debug_test(transmitter:radio_utils.RadioModule):
+    run_test(transmitter, power_list=[20], air_rate_list=[2], Y_speed=2)
 
 
 def main():
     transmitter = init()
-    test_R_01(transmitter)
+    debug_test(transmitter)
 
 
 if __name__ == "__main__":

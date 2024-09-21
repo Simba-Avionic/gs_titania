@@ -32,39 +32,43 @@ def parse_sent_inputs(current_inputs):
         return None
     
 
-def create_repeated_bit_sequence(num_of_packages, size_of_package): 
-    all_packages_concatenated = ''
-    current_packet_set_used = eval(f'DEFAULT_PACKET_LIST_{size_of_package}')
-    for i in range(num_of_packages):
-        all_packages_concatenated += current_packet_set_used[i%len(current_packet_set_used)].decode()
-    all_packages_concatenated = radio_utils.testing.str2bin(all_packages_concatenated)
-    return all_packages_concatenated
-
-# def create_repeated_byte_sequence(num_of_packages, size_of_package): 
+# def create_repeated_bit_sequence(num_of_packages, size_of_package): 
 #     all_packages_concatenated = ''
 #     current_packet_set_used = eval(f'DEFAULT_PACKET_LIST_{size_of_package}')
 #     for i in range(num_of_packages):
 #         all_packages_concatenated += current_packet_set_used[i%len(current_packet_set_used)].decode()
+#     all_packages_concatenated = radio_utils.testing.str2bin(all_packages_concatenated)
 #     return all_packages_concatenated
 
-def create_csv_row(output_dict,current_inputs,all_received_bytes):
+def create_repeated_byte_sequence(num_of_packages, size_of_package) -> bytes: 
+    all_packages_concatenated = b''
+    current_packet_set_used = eval(f'DEFAULT_PACKET_LIST_{size_of_package}')
+    for i in range(num_of_packages):
+        all_packages_concatenated += current_packet_set_used[i%len(current_packet_set_used)]
+    return all_packages_concatenated
+
+def create_csv_row(output_dict,current_inputs,all_received_bytes:bytes):
     result = []
-    received_bits = t.str2bin(all_received_bytes)
+    # received_bits = t.str2bin(all_received_bytes)
     input_dict = parse_sent_inputs(current_inputs)
-    if type(input_dict) == None:
-        sent_bytes = 0
-        packets_sent = 0
-    else:
-        sent_bits = create_repeated_bit_sequence(int(input_dict['PACKET_AMOUNT']), input_dict['PACKET_SIZE'])
-        packets_sent = int(input_dict['PACKET_AMOUNT'])
-    ber = t.calculate_ber(sent_bits, received_bits)
-    packets_received = min(all_received_bytes.count("A"),all_received_bytes.count("O"))
-    print(f'packets_received = {packets_received}')
-    per = t.calculate_per(packets_sent,packets_received)
+    ber, per = ber_per_helper(input_dict,current_inputs,all_received_bytes)
     output_dict.update({'BER':ber, 'PER':per})
     input_dict.update(output_dict)
     result.append(input_dict)
     t.write_results_to_csv(result,f'{FILEPATH}/ultimate_results.csv')
+
+def ber_per_helper(input_dict,current_inputs,all_received_bytes):
+    input_dict = parse_sent_inputs(current_inputs)
+    if type(input_dict) == None:
+        print("KURDE BALANS ZA MOMENT WYPIERNICZY")
+    else:
+        sent_bytes = create_repeated_byte_sequence(int(input_dict['PACKET_AMOUNT']), input_dict['PACKET_SIZE'])
+        sent_packets = eval(f't.DEFAULT_PACKET_LIST_{input_dict['PACKET_SIZE']}')  
+        
+    # incorrect_bytes_amount = t.check_incorrect_bytes(sent_bytes, all_received_bytes)
+    ber = t.calculate_ber(sent_bytes, all_received_bytes)
+    per = t.calculate_per(sent_packets,all_received_bytes)
+    return ber, per
 
 
 def main():
@@ -73,8 +77,8 @@ def main():
     serial_port = 'COM7'
     baud_rate = 57600
     with radio_utils.RadioModule(serial_port, baud_rate, timeout=0.0001) as receiver: # idk why but that's the only way for read to work that i found
-        receiver.flushInput()      
-        receiver.flushOutput()
+        receiver.reset_input_buffer()      
+        receiver.reset_output_buffer()
         receiver.read_all()
         receiver.set_params_to_request(DEFAULT_PARAMS) # can comment it out to save some time if already set ---> best/easiest way to edit params
         receiver.leave_command_mode()
@@ -82,31 +86,35 @@ def main():
         # print(receiver.get_current_parameters(remote=True)) # can comment it out to save some time
 
         # Testing Stuff
-        all_received_bytes = ''        
+        all_received_bytes = b''        
         while True:
             current_inputs = ''
             current_byte = receiver.read()
             if not (current_byte == b'' or current_byte == b'+'):
                 print(current_byte)
-                all_received_bytes += current_byte.decode()
-                if current_byte.decode() == 'f':
-                    all_received_bytes = all_received_bytes.replace('f','')
-                    all_received_bytes = all_received_bytes.replace('ATI\r\n','') # might leak in
-                    current_inputs += receiver.read(50).decode()
-                    current_inputs += receiver.read(50).decode()
-                    current_inputs += receiver.read(50).decode()
-                    current_inputs += receiver.read(50).decode()
-                    current_inputs += receiver.read(50).decode()
-                    print(current_inputs)
-                    output_dict = receiver.get_output_data()
-                    print(output_dict)
-                    create_csv_row(output_dict,current_inputs,all_received_bytes)
-                    all_received_bytes = ''
-                    receiver.flushInput()
-                    receiver.flushOutput()
-                    for i in range(5):
-                        receiver.write('KKKKKKKKKKKKKKK'.encode())
-                        radio_utils.time.sleep(0.3)
+                all_received_bytes += current_byte
+                if current_byte == b'#':
+                    while True:
+                        receiver.write('@@@'.encode())
+                        radio_utils.time.sleep(1)
+                        current_inputs += receiver.read(100).decode()
+                        radio_utils.time.sleep(1)
+                        current_inputs += receiver.read(100).decode()
+                        if current_inputs:
+                            print(current_inputs)
+                            output_dict = receiver.get_output_data()
+                            print(output_dict)
+                            create_csv_row(output_dict,current_inputs,all_received_bytes)
+                            all_received_bytes = b''
+                            receiver.flushInput()
+                            receiver.flushOutput()
+                            radio_utils.time.sleep(0.4)
+                            for i in range(5):
+                                receiver.write('@@@@@@@@@@@@@@@@@@@@@@@@@@'.encode())
+                                radio_utils.time.sleep(0.4)
+                            break    
+                    # all_received_bytes = all_received_bytes.replace('f','')
+                    # all_received_bytes = all_received_bytes.replace('ATI\r\n','') # might leak in
                     receiver.flushInput()
                     receiver.flushOutput()
                     current_byte = ''
