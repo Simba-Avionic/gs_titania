@@ -13,14 +13,14 @@ def receive_data(serial_conn):
     return serial_conn.read()
 
 def main():
-    # selected_port, detected_baud = radio_utils.pick_pickables()
-    selected_port = "/dev/ttyUSB0"
-    detected_baud = 57600
+    # selected_port, detected_sbaud = radio_utils.pick_pickables()
+    selected_port = "COM7"
+    detected_baud = 115200
     try:
         i = 1
         with radio_utils.serial.Serial(selected_port, detected_baud, timeout=0.000001) as ser:
-            ser.flushInput()      
-            ser.flushOutput()
+            ser.reset_input_buffer()      
+            ser.reset_output_buffer()
             while True:
                 time_ms = int(time.time()*1000)
                 data_to_send = "G "+str(i)+" "+str(time_ms)

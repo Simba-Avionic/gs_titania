@@ -24,8 +24,8 @@ def receive_data(serial_conn) -> str:
 
 def main():
     # selected_port, detected_baud = radio_utils.pick_pickables()
-    selected_port = "/dev/ttyUSB1"
-    detected_baud = 57600
+    selected_port = "COM5"
+    detected_baud = 115200
     last_seqNum = -1
     last_send_timestamp = 0
     start_pelne = 0
@@ -45,8 +45,8 @@ def main():
     pelne = []
     try:
         with radio_utils.serial.Serial(selected_port, detected_baud, timeout=1) as ser:  
-            ser.flushInput()      
-            ser.flushOutput()
+            ser.reset_input_buffer()      
+            ser.reset_output_buffer()
             start_time = time()                
             while time() - start_time < 7:
                 received_data = receive_data(ser)

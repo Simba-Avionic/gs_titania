@@ -53,11 +53,11 @@ def create_csv_row(output_dict,current_inputs,all_received_bytes:bytes):
     result = []
     # received_bits = t.str2bin(all_received_bytes)
     input_dict = parse_sent_inputs(current_inputs)
-    ber, per = ber_per_helper(input_dict,current_inputs,all_received_bytes)
-    output_dict.update({'BER':ber, 'PER':per})
+    ber, per, bytes_lost, bytes_sent = ber_per_helper(input_dict,current_inputs,all_received_bytes)
+    output_dict.update({'BER':ber, 'PER':per, 'BYTES_LOST%':bytes_lost/bytes_sent*100})
     input_dict.update(output_dict)
     result.append(input_dict)
-    t.write_results_to_csv(result,f'{FILEPATH}/ultimate_results_received.csv')
+    t.write_results_to_csv(result,f'{FILEPATH}/results/ultimate_results_received.csv')
 
 def ber_per_helper(input_dict,current_inputs,all_received_bytes):
     input_dict = parse_sent_inputs(current_inputs)
@@ -65,19 +65,34 @@ def ber_per_helper(input_dict,current_inputs,all_received_bytes):
         print("KURDE BALANS ZA MOMENT WYPIERNICZY")
     else:
         sent_bytes = create_repeated_byte_sequence(int(input_dict['PACKET_AMOUNT']), input_dict['PACKET_SIZE'])
-        sent_packets_count = input_dict['PACKET_AMOUNT']
+        sent_packets_count = int(input_dict['PACKET_AMOUNT'])  
         
     # incorrect_bytes_amount = t.check_incorrect_bytes(sent_bytes, all_received_bytes)
-    ber = t.calculate_ber(sent_bytes, all_received_bytes)
+    ber,bytes_lost = t.calculate_ber(sent_bytes, all_received_bytes)
     per = t.calculate_per(int(sent_packets_count),all_received_bytes)
-    return ber, per
+    return ber, per, bytes_lost, len(sent_bytes)
+
+def save_bytes_chunk(data: bytes, log_file):
+    """
+    Saves a 16-byte chunk of data with a timestamp to a log file.
+    """
+    # Get the current timestamp
+    timestamp = radio_utils.time.time()*1000
+    
+    # Format the log entry with the timestamp and data in hex
+    log_entry = f"{timestamp} {data.hex()}\n"
+    
+    # Save to file
+    log_file.write(log_entry)
+    log_file.flush()  # Ensure the data is written immediately to the file
+    # print(f"Chunk saved: {log_entry}")
 
 
 def main():
     # Init
-    # serial_port, baud_rate = radio_utils.pick_pickables()
-    serial_port = 'COM6'
-    baud_rate = 57600
+    serial_port, baud_rate = radio_utils.pick_pickables()
+    # serial_port = 'COM5'
+    # baud_rate = 57600
     with radio_utils.RadioModule(serial_port, baud_rate, timeout=0.0001) as receiver: # idk why but that's the only way for read to work that i found
         receiver.reset_input_buffer()      
         receiver.reset_output_buffer()
@@ -89,14 +104,22 @@ def main():
 
         # Testing Stuff
         all_received_bytes = b''        
+        log_chunk = b''
+        log_file = open(f'{FILEPATH}/results/received_bytes_log.txt','a')
         while True:
             current_inputs = ''
             current_byte = receiver.read()
             if not (current_byte == b'' or current_byte == b'+'):
                 print(current_byte)
                 all_received_bytes += current_byte
+                log_chunk += current_byte
+                if len(log_chunk) == 16:
+                    save_bytes_chunk(log_chunk,log_file)
+                    log_chunk = b''
                 if current_byte == b'#':
                     all_received_bytes = all_received_bytes.replace(b'#',b'')
+                    save_bytes_chunk(log_chunk,log_file)
+                    log_chunk = b''
                     # all_received_bytes = all_received_bytes.replace('ATI\r\n','') # might leak in?
                     while True:
                         receiver.write('@@@'.encode())
@@ -124,7 +147,7 @@ def main():
                     receiver.flushInput()
                     receiver.flushOutput()
                     current_byte = ''
-
+        log_file.close()
 
 if __name__ == "__main__":
     main()

@@ -9,7 +9,7 @@ def send_data(serial_conn, data):
     serial_conn.write(data)
 
 def receive_data(serial_conn):
-    return serial_conn.read()
+    return serial_conn.read_all()
 
 def main():
     selected_port, detected_baud = radio_utils.pick_pickables()

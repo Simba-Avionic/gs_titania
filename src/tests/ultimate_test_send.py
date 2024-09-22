@@ -36,10 +36,10 @@ slower_than_16kbps = {k: v for k, v in frame_combinations.items() if v[3] < 16 *
 slower_than_32kbps = {k: v for k, v in frame_combinations.items() if v[3] < 32 * 1024}
 
 
-def init():
-    # serial_port, baud_rate = radio_utils.pick_pickables()
-    serial_port = 'COM5'
-    baud_rate = 57600
+def init(): 
+    serial_port, baud_rate = radio_utils.pick_pickables()
+    # serial_port = 'COM7'
+    # baud_rate = 230400
     transmitter = radio_utils.RadioModule(serial_port, baud_rate,timeout=0.0001)
     transmitter.reset_input_buffer()      
     transmitter.reset_output_buffer()
@@ -66,7 +66,7 @@ def run_test(transmitter:radio_utils.RadioModule, power_list, air_rate_list, X_s
     total_amount_subtests = calculate_subtests_count(power_list, air_rate_list, X_speed, Y_speed)
     current_subtest = 0
     if log:
-        log_file = open(f"{FILEPATH}/packets_sent_log.txt", "a")
+        log_file = open(f"{FILEPATH}/results/packets_sent_log.txt", "a")
     else:
         log_file = None
     for tx_p in power_list:
@@ -113,7 +113,7 @@ def run_test(transmitter:radio_utils.RadioModule, power_list, air_rate_list, X_s
                             print(output_dict)
                             send_params.update(output_dict)
                             list_to_save.append(send_params)
-                            t.write_results_to_csv(list_to_save,f'{FILEPATH}/ultimate_results_sent.csv')
+                            t.write_results_to_csv(list_to_save,f'{FILEPATH}/results/ultimate_results_sent.csv')
                             radio_utils.time.sleep(3) # give some time to write results on receiver end
                             transmitter.reset_input_buffer()      
                             transmitter.reset_output_buffer()
@@ -126,7 +126,7 @@ def run_test(transmitter:radio_utils.RadioModule, power_list, air_rate_list, X_s
             transmitter.reset_input_buffer()      
             transmitter.reset_output_buffer()
 
-            print("FINITO y BASTA")
+    print("FINITO y BASTA")
             
     
 def test_R_01(transmitter:radio_utils.RadioModule):
@@ -140,7 +140,7 @@ def debug_test(transmitter:radio_utils.RadioModule):
 
 def main():
     transmitter = init()
-    debug_test(transmitter)
+    test_R_01(transmitter)
 
 
 if __name__ == "__main__":

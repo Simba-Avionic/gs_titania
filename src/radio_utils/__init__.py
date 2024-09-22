@@ -14,7 +14,10 @@ def detect_baud_rate(port):
     Returns:
         int: The detected baud rate, or None if detection failed.
     """
-    baud_rates = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
+    baud_rates = [50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400, 4800,
+                 9600, 19200, 38400, 57600, 115200, 230400, 460800, 500000,
+                 576000, 921600, 1000000, 1152000, 1500000, 2000000, 2500000,
+                 3000000, 3500000, 4000000]
     for baud in baud_rates:
         print("Checking: " + str(baud))
         try:
@@ -451,6 +454,7 @@ class RadioModule(serial.Serial):
                     s_parameter_num = key.split(':')[0]
                     value_to_set = eval(f'requested_params[\'{key}\']')
                     self.send_at_command(f'AT{s_parameter_num}={value_to_set}')
+
         else:
             print('Already set to requested values')
 
