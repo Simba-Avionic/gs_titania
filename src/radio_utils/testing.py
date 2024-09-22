@@ -133,10 +133,9 @@ def calculate_ber(bytes_sent: bytes, bytes_received: bytes) -> float:
     ber = bit_errors / total_bits
     return ber
     
-def calculate_per(sent_packets,all_received_bytes) -> int:
+def calculate_per(sent_packets_count,all_received_bytes) -> int:
     # Packet Error Rate calculation (PER)
     received_correct_packets_count = len(extract_packets(all_received_bytes))
-    sent_packets_count = len(sent_packets)
     try:
         return (sent_packets_count-received_correct_packets_count)/sent_packets_count
     except ZeroDivisionError:

@@ -65,11 +65,11 @@ def ber_per_helper(input_dict,current_inputs,all_received_bytes):
         print("KURDE BALANS ZA MOMENT WYPIERNICZY")
     else:
         sent_bytes = create_repeated_byte_sequence(int(input_dict['PACKET_AMOUNT']), input_dict['PACKET_SIZE'])
-        sent_packets = eval(f't.DEFAULT_PACKET_LIST_{input_dict['PACKET_SIZE']}')  
+        sent_packets_count = input_dict['PACKET_AMOUNT']
         
     # incorrect_bytes_amount = t.check_incorrect_bytes(sent_bytes, all_received_bytes)
     ber = t.calculate_ber(sent_bytes, all_received_bytes)
-    per = t.calculate_per(sent_packets,all_received_bytes)
+    per = t.calculate_per(int(sent_packets_count),all_received_bytes)
     return ber, per
 
 
@@ -109,6 +109,9 @@ def main():
                             output_dict = receiver.get_output_data()
                             print(output_dict)
                             create_csv_row(output_dict,current_inputs,all_received_bytes)
+                            # with open('bytes_received.txt', 'a', newline='') as output_file:
+                            #     output_file.write(f"{all_received_bytes}\n")
+                            #     output_file.flush()
                             all_received_bytes = b''
                             receiver.flushInput()
                             receiver.flushOutput()
