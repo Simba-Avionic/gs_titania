@@ -26,19 +26,39 @@ requested_values = {
 }
 
 if __name__ == '__main__':
-    serial_port, baud_rate = radio_utils.pick_pickables()
-    # serial_port = 'COM7'0
-    # baud_rate = 230400
+    # doesn't work? parameters stay the same
+    # serial_port = 'COM7'
+    # baud_rate = 115200
     # serial_port2 = 'COM5'
+    # baud_rate2 = 115200
+    # with radio_utils.RadioModule(serial_port, baud_rate, timeout=1) as ser:  
+    #     ser.send_at_command('AT&F') # reset all parameters to factory default
+    #     ser.send_at_command('AT&W') # write to eeprom
+    #     ser.send_at_command('ATZ') # reboot
+
+    # with radio_utils.RadioModule(serial_port2, baud_rate2, timeout=1) as ser:  
+    #     ser.send_at_command('AT&F') # reset all parameters to factory default
+    #     ser.send_at_command('AT&W') # write to eeprom
+    #     ser.send_at_command('ATZ') # reboot
+    # radio_utils.time.sleep(3)
+
+    # serial_port, baud_rate = radio_utils.pick_pickables()
+    serial_port = 'COM7'
+    baud_rate = 115200
+    serial_port2 = 'COM5'
+    baud_rate2 = 115200
     transmitter = radio_utils.RadioModule(serial_port, baud_rate)
-    # receiver = radio_utils.RadioModule(serial_port2, baud_rate)
+    receiver = radio_utils.RadioModule(serial_port2, baud_rate2)
+
+    print(transmitter.get_current_parameters())
+
 
     transmitter.set_params_to_request(requested_values)
-    # receiver.set_params_to_request(requested_values)
+    receiver.set_params_to_request(requested_values)
     transmitter.send_at_command('AT&W')
-    # receiver.send_at_command('AT&W')
+    receiver.send_at_command('AT&W')
     transmitter.send_at_command('ATO')
-    # receiver.send_at_command('ATO')
+    receiver.send_at_command('ATO')
     print(transmitter.get_current_parameters())
 
 

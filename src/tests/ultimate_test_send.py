@@ -37,9 +37,9 @@ slower_than_32kbps = {k: v for k, v in frame_combinations.items() if v[3] < 32 *
 
 
 def init(): 
-    serial_port, baud_rate = radio_utils.pick_pickables()
-    # serial_port = 'COM7'
-    # baud_rate = 230400
+    # serial_port, baud_rate = radio_utils.pick_pickables()
+    serial_port = 'COM5'
+    baud_rate = 115200
     transmitter = radio_utils.RadioModule(serial_port, baud_rate,timeout=0.0001)
     transmitter.reset_input_buffer()      
     transmitter.reset_output_buffer()

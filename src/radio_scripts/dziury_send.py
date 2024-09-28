@@ -14,7 +14,7 @@ def receive_data(serial_conn):
 
 def main():
     # selected_port, detected_sbaud = radio_utils.pick_pickables()
-    selected_port = "COM7"
+    selected_port = "COM5"
     detected_baud = 115200
     try:
         i = 1

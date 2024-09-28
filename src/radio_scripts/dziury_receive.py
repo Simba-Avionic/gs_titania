@@ -24,7 +24,7 @@ def receive_data(serial_conn) -> str:
 
 def main():
     # selected_port, detected_baud = radio_utils.pick_pickables()
-    selected_port = "COM5"
+    selected_port = "COM7"
     detected_baud = 115200
     last_seqNum = -1
     last_send_timestamp = 0

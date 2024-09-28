@@ -6,7 +6,7 @@ import random
 import string
 
 DEFAULT_PARAMS = {
-    'S1:SERIAL_SPEED': 230,      # 115200 baudrate 230400
+    'S1:SERIAL_SPEED': 115,      # 115 = 115200 baudrate 230 = 230400
     'S3:NETID': 18,
     'S5:ECC': 0,
     'S8:MIN_FREQ': 434550,

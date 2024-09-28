@@ -90,9 +90,9 @@ def save_bytes_chunk(data: bytes, log_file):
 
 def main():
     # Init
-    serial_port, baud_rate = radio_utils.pick_pickables()
-    # serial_port = 'COM5'
-    # baud_rate = 57600
+    # serial_port, baud_rate = radio_utils.pick_pickables()
+    serial_port = 'COM7'
+    baud_rate = 115200
     with radio_utils.RadioModule(serial_port, baud_rate, timeout=0.0001) as receiver: # idk why but that's the only way for read to work that i found
         receiver.reset_input_buffer()      
         receiver.reset_output_buffer()
