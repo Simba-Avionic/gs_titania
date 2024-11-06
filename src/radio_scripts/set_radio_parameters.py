@@ -13,7 +13,7 @@ requested_values = {
     'S3:NETID': 18, 
     'S4:TXPOWER': 20, 
     'S5:ECC': 0, 
-    'S6:MAVLINK': 0, 
+    'S6:MAVLINK': 1, 
     'S7:OPPRESEND': 1, 
     'S8:MIN_FREQ': 434550, 
     'S9:MAX_FREQ': 434650, 
@@ -22,16 +22,16 @@ requested_values = {
     'S12:LBT_RSSI': 0, 
     'S13:MANCHESTER': 0, 
     'S14:RTSCTS': 0, 
-    'S15:MAX_WINDOW': 100
+    'S15:MAX_WINDOW': 131 # mission planner sets it to this value for standard mavlink
 }
 
 if __name__ == '__main__':
     # serial_port, baud_rate = radio_utils.pick_pickables()
-    serial_port = 'COM5'
-    baud_rate = 57600
+    serial_port = 'COM9'
+    baud_rate = 115200
     transmitter = radio_utils.RadioModule(serial_port, baud_rate)
     transmitter.set_params_to_request(requested_values)
-    transmitter.send_at_command('AT&W')
+    transmitter.send_at_command('AT&W') # saves to EEPROM, try to minimise use to minimise EEPROM wear
     print(transmitter.get_current_parameters())
 
         
