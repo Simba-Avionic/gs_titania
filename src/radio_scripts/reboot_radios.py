@@ -11,7 +11,17 @@ if __name__ == '__main__':
     baud_rate =57600
     transmitter = radio_utils.RadioModule(serial_port, baud_rate)
     receiver = radio_utils.RadioModule('COM7',57600)
-
+    transmitter.enter_command_mode(verbose=True)
+    receiver.enter_command_mode(verbose=True)
     # print(transmitter.send_at_command('RTZ'))
-    print(transmitter.send_at_command('ATZ'))
+    print(receiver.send_at_command('AT&F'))
+    print(receiver.send_at_command('AT&W'))
     print(receiver.send_at_command('ATZ'))
+
+
+
+    print(transmitter.send_at_command('AT&F'))
+    print(transmitter.send_at_command('AT&W'))
+    print(transmitter.send_at_command('ATZ'))
+
+    

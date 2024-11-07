@@ -19,7 +19,12 @@ def main():
         print(radio.get_current_parameters())
         # Exit AT command mode
         i += 1
-    radio.leave_command_mode()
+    # radio.leave_command_mode()
+    radio.send_at_command('ATZ')
+    radio.send_at_command('ATZ')
+    radio.send_at_command('ATZ')
+    radio.send_at_command('ATZ')
+
 
 if __name__ == '__main__':
     main()

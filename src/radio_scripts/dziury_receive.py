@@ -23,9 +23,18 @@ def receive_data(serial_conn) -> str:
             return buff
 
 def main():
-    # selected_port, detected_baud = radio_utils.pick_pickables()
-    selected_port = "/dev/ttyUSB1"
-    detected_baud = 57600
+    # Check if MAX_FREQ is provided as a command-line argument
+    if len(sys.argv) > 1:
+        selected_port = sys.argv[1]
+        min_freq = int(sys.argv[2])
+        max_freq = int(sys.argv[3])
+        detected_baud = 57600
+
+    else:
+        # selected_port, detected_baud = radio_utils.pick_pickables()
+        selected_port = "COM5"
+        detected_baud = 57600
+        
     last_seqNum = -1
     last_send_timestamp = 0
     start_pelne = 0
@@ -116,7 +125,11 @@ def main():
             plt.plot(recv_timestamps, recv_y, "g.")
             plt.plot(lost_timestamps, lost_y, "r.")
             plt.plot(wrong_timestamps, wrong_y, "y.")
-            plt.show()
+            if len(sys.argv) > 1:
+                plt.title('min_freq: '+str(min_freq)+' max_freq: '+str(max_freq))
+                plt.savefig('min_freq_'+str(min_freq)+'_max_freq_'+str(max_freq))
+            else:
+                plt.show()
     except radio_utils.serial.SerialException as e:
         print(f'Error: {e}')
     except Exception as e:

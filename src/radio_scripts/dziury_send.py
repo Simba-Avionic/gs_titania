@@ -13,9 +13,14 @@ def receive_data(serial_conn):
     return serial_conn.read()
 
 def main():
-    # selected_port, detected_baud = radio_utils.pick_pickables()
-    selected_port = "/dev/ttyUSB0"
-    detected_baud = 57600
+    
+    if len(sys.argv) > 1:
+            selected_port = sys.argv[1]
+            detected_baud = 57600
+    else:
+        # selected_port, detected_baud = radio_utils.pick_pickables()
+        selected_port = "COM7"
+        detected_baud = 57600
     try:
         i = 1
         with radio_utils.serial.Serial(selected_port, detected_baud, timeout=0.000001) as ser:

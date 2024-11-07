@@ -9,8 +9,8 @@ DEFAULT_PARAMS = {
     'S1:SERIAL_SPEED': 57,      # 57600 baudrate
     'S3:NETID': 18,
     'S5:ECC': 0,
-    'S8:MIN_FREQ': 434550,
-    'S9:MAX_FREQ': 434650,
+    'S8:MIN_FREQ': 433070,
+    'S9:MAX_FREQ': 433330,
     'S10:NUM_CHANNELS': 10,
     'S11:DUTY_CYCLE': 100,
     'S12:LBT_RSSI': 0,

@@ -76,7 +76,7 @@ def ber_per_helper(input_dict,current_inputs,all_received_bytes):
 def main():
     # Init
     # serial_port, baud_rate = radio_utils.pick_pickables()
-    serial_port = 'COM6'
+    serial_port = 'COM5'
     baud_rate = 57600
     with radio_utils.RadioModule(serial_port, baud_rate, timeout=0.0001) as receiver: # idk why but that's the only way for read to work that i found
         receiver.reset_input_buffer()      
