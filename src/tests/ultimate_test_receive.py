@@ -53,8 +53,8 @@ def create_csv_row(output_dict,current_inputs,all_received_bytes:bytes):
     result = []
     # received_bits = t.str2bin(all_received_bytes)
     input_dict = parse_sent_inputs(current_inputs)
-    ber, per = ber_per_helper(input_dict,current_inputs,all_received_bytes)
-    output_dict.update({'BER':ber, 'PER':per})
+    ber, per, bytes_lost = ber_per_helper(input_dict,current_inputs,all_received_bytes)
+    output_dict.update({'BER':ber, 'PER':per, 'bytes_lost':bytes_lost})
     input_dict.update(output_dict)
     result.append(input_dict)
     t.write_results_to_csv(result,f'{FILEPATH}/ultimate_results_received.csv')
@@ -70,18 +70,29 @@ def ber_per_helper(input_dict,current_inputs,all_received_bytes):
     # incorrect_bytes_amount = t.check_incorrect_bytes(sent_bytes, all_received_bytes)
     ber = t.calculate_ber(sent_bytes, all_received_bytes)
     per = t.calculate_per(int(sent_packets_count),all_received_bytes)
-    return ber, per
+    bytes_lost = len(all_received_bytes)/len(sent_bytes) 
+    return ber, per, bytes_lost
 
 
 def main():
     # Init
-    # serial_port, baud_rate = radio_utils.pick_pickables()
-    serial_port = 'COM5'
-    baud_rate = 57600
+    if len(sys.argv) > 1:
+        serial_port = sys.argv[1]
+        print(serial_port)
+        baud_rate = int(sys.argv[2])
+    else:
+        # serial_port, baud_rate = radio_utils.pick_pickables()
+        serial_port = "COM5"
+        baud_rate = 57600
+
     with radio_utils.RadioModule(serial_port, baud_rate, timeout=0.0001) as receiver: # idk why but that's the only way for read to work that i found
         receiver.reset_input_buffer()      
         receiver.reset_output_buffer()
         receiver.read_all()
+        # try to reboot before running test
+        for _ in range(3):
+            receiver.send_at_command('ATO')
+            receiver.send_at_command("ATZ")
         receiver.set_params_to_request(DEFAULT_PARAMS) # can comment it out to save some time if already set ---> best/easiest way to edit params
         receiver.leave_command_mode()
         # print(receiver.get_current_parameters()) # can comment it out to save some time

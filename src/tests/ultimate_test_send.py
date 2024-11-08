@@ -36,14 +36,23 @@ slower_than_16kbps = {k: v for k, v in frame_combinations.items() if v[3] < 16 *
 slower_than_32kbps = {k: v for k, v in frame_combinations.items() if v[3] < 32 * 1024}
 
 
-def init():
-    # serial_port, baud_rate = radio_utils.pick_pickables()
-    serial_port = 'COM7'
-    baud_rate = 57600
+def init(*args):
+    # Init
+    if len(args) > 1:
+        serial_port = args[0]
+        baud_rate = args[1]
+    else:
+        # serial_port, baud_rate = radio_utils.pick_pickables()
+        serial_port = "COM7"
+        baud_rate = 57600
     transmitter = radio_utils.RadioModule(serial_port, baud_rate,timeout=0.0001)
     transmitter.reset_input_buffer()      
     transmitter.reset_output_buffer()
     transmitter.read_all()
+    # try to reboot before running test
+    for _ in range(3):
+        transmitter.send_at_command('ATO')
+        transmitter.send_at_command("ATZ")
     transmitter.set_params_to_request(DEFAULT_PARAMS) # can comment it out to save some time if already set ---> best/easiest way to edit params
     # print(transmitter.get_current_parameters()) # can comment it out to save some time
     # print(transmitter.get_current_parameters(remote=True)) # can comment it out to save some time
@@ -139,8 +148,13 @@ def debug_test(transmitter:radio_utils.RadioModule):
 
 
 def main():
-    transmitter = init()
-    debug_test(transmitter)
+    if len(sys.argv) > 1:
+        transmitter = init(sys.argv[1],sys.argv[2])
+    else:
+        transmitter = init()
+
+    # debug_test(transmitter)
+    test_R_01(transmitter)
 
 
 if __name__ == "__main__":

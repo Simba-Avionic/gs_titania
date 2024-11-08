@@ -364,11 +364,8 @@ class RadioModule(serial.Serial):
             else:
                 response = self.send_at_command(f'ATS4={power}')
             if 'OK' in response:
-                if 'OK' in self.send_at_command('AT&W'):
-                    print(f'Successfully set transmit power to {power} dBm and saved to EEPROM.')
+                    print(f'Successfully set transmit power to {power} dBm (didnt saved to EEPROM).')
                     return True
-                else:
-                    print('Failed to save to EEPROM.')
             else:
                 print('Failed to set transmit power.')
         else:
@@ -388,12 +385,9 @@ class RadioModule(serial.Serial):
                 response = self.send_at_command(f'RTS2={air_rate}')
                 time.sleep(0.5)
             response = self.send_at_command(f'ATS2={air_rate}')
-            if 'OK' in response:
-                if 'OK' in self.send_at_command('AT&W'):
-                    print(f'Successfully set air rate to {air_rate} kbs and saved to EEPROM.')
-                    return True
-                else:
-                    print('Failed to save to EEPROM.')
+            if 'OK' in response:                
+                print(f'Successfully set air rate to {air_rate} kbs (didnt save to EEPROM).')
+                return True
             else:
                 print('Failed to set transmit power.')
         else:
@@ -410,11 +404,8 @@ class RadioModule(serial.Serial):
             else:
                 response = self.send_at_command(f'ATS6={mav_link_option}')
             if 'OK' in response:
-                if 'OK' in self.send_at_command('AT&W'):
-                    print(f'Successfully set mav link option to {mav_link_option} and saved to EEPROM.')
+                    print(f'Successfully set mav link option to {mav_link_option} (didnt save to EEPROM).')
                     return True
-                else:
-                    print('Failed to save to EEPROM.')
             else:
                 print('Failed to set transmit power.')
         else:
@@ -431,11 +422,8 @@ class RadioModule(serial.Serial):
             else:
                 response = self.send_at_command(f'ATS5={eec_op}')
             if 'OK' in response:
-                if 'OK' in self.send_at_command('AT&W'):
-                    print(f'Successfully set EEC option to {eec_op} and saved to EEPROM.')
+                    print(f'Successfully set EEC option to {eec_op} and (didnt save to EEPROM).')
                     return True
-                else:
-                    print('Failed to save to EEPROM.')
             else:
                 print('Failed to set transmit power.')
         else:
