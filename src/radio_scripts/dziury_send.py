@@ -17,10 +17,13 @@ def main():
     if len(sys.argv) > 1:
             selected_port = sys.argv[1]
             detected_baud = 57600
+            sending_frequency = int(sys.argv[2]) # how often message is send per second
+            print(sending_frequency)
     else:
         # selected_port, detected_baud = radio_utils.pick_pickables()
         selected_port = "COM7"
         detected_baud = 57600
+        sending_frequency = 50
     try:
         i = 1
         with radio_utils.serial.Serial(selected_port, detected_baud, timeout=0.000001) as ser:
@@ -33,7 +36,7 @@ def main():
                 data_to_send = data_to_send + " " + str(checksum) + " S"
                 n = send_data(ser, (data_to_send).encode())
                 print(f'Sent {n} bytes: {data_to_send}')
-                radio_utils.time.sleep(0.01) 
+                radio_utils.time.sleep(1/sending_frequency) 
                 i = i + 1
     except radio_utils.serial.SerialException as e:
         print(f'Error: {e}')

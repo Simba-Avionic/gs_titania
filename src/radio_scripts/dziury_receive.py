@@ -28,12 +28,16 @@ def main():
         selected_port = sys.argv[1]
         min_freq = int(sys.argv[2])
         max_freq = int(sys.argv[3])
+        reading_period = int(sys.argv[4]) # how long messages are read 
+        sending_frequency = int(sys.argv[5]) #how often message is send
+        air_speed = int(sys.argv[6])
         detected_baud = 57600
 
     else:
         # selected_port, detected_baud = radio_utils.pick_pickables()
         selected_port = "COM5"
         detected_baud = 57600
+        reading_period = 7
         
     last_seqNum = -1
     last_send_timestamp = 0
@@ -49,6 +53,8 @@ def main():
     recv_y = []
     wrong_y = []
     wrong_y_val = 0
+    total_bytes_sent_until_fail = 0
+    first_wrong_found = False
 
     dziury = []
     pelne = []
@@ -57,7 +63,7 @@ def main():
             ser.flushInput()      
             ser.flushOutput()
             start_time = time()                
-            while time() - start_time < 7:
+            while time() - start_time < reading_period:
                 received_data = receive_data(ser)
                 time_ms = int(time()*1000)
                 if received_data[0:2] != "G " or received_data[-2:] != " S":
@@ -68,7 +74,7 @@ def main():
                         wrong_y.append(wrong_y_val)
                     continue
                 fields = received_data.split(" ")
-                if len(fields) < 5:
+                if len(fields) < 5 or '' in fields:
                     print("Incorrect number of fields:", received_data)
                     if wrong_y_val != 0:
                         wrong_timestamps.append(time_ms)
@@ -77,6 +83,7 @@ def main():
                     continue
                 seqNum = int(fields[1])
                 sendTS = int(fields[2])
+                
                 checksum = seqNum + sendTS
                 if checksum != int(fields[3]):
                     print("Incorrect checksum:", received_data)
@@ -96,9 +103,17 @@ def main():
                 recv_timestamps.append(int(time()*1000))
                 recv_y.append(seqNum)
                 send_y.append(seqNum)
+                
+                if not first_wrong_found:
+                    # Calculate bytes sent (for simplicity, assume each message is sent as a string of chars)
+                    message = f"G {seqNum} {sendTS} {checksum} S"
+                    total_bytes_sent_until_fail += len(message.encode('utf-8'))  # Encode the message to get the byte length
+
                 good_msgs += 1
                 print(fields)
                 if (last_seqNum+1 != seqNum):
+                    if not first_wrong_found: first_wrong_found = True
+
                     num_of_lost_messages = seqNum-last_seqNum-1
                     dziura_ts = sendTS - last_send_timestamp
                     dziury.append(dziura_ts)
@@ -121,13 +136,19 @@ def main():
                 pelne_avg = sum(pelne)/len(pelne)
                 print("Dziury:", dziury, "avg:", dziury_avg)
                 print("Pelne:", pelne, "avg:", pelne_avg)
-            plt.plot(send_timestamps, send_y, "b.")
+            plt.plot(send_timestamps, send_y, "b.",)
             plt.plot(recv_timestamps, recv_y, "g.")
             plt.plot(lost_timestamps, lost_y, "r.")
             plt.plot(wrong_timestamps, wrong_y, "y.")
             if len(sys.argv) > 1:
-                plt.title('min_freq: '+str(min_freq)+' max_freq: '+str(max_freq))
-                plt.savefig('min_freq_'+str(min_freq)+'_max_freq_'+str(max_freq))
+                if not first_wrong_found:
+                    total_bytes_sent_until_fail = "N/A"
+                # if lost_timestamps[0] is None:
+                    # first_lost = lost_timestamps[0]-send_timestamps[0]
+                # else:
+                    # first_lost = None
+                plt.title(str(air_speed) + 'kbps ' + str(sending_frequency)+'Hz '+'min_f: '+str(min_freq)+' max_f: '+str(max_freq)+' bytes sent till lost: ' + str(total_bytes_sent_until_fail) + ' bytes',fontsize = 8) # str(send_timestamps[0]-lost_timestamps[0]
+                plt.savefig(str(air_speed) + 'kbps_' + str(reading_period)+'s_'+ str(sending_frequency)+'Hz_'+'min_f_'+str(min_freq)+'_max_f_'+str(max_freq))
             else:
                 plt.show()
     except radio_utils.serial.SerialException as e:

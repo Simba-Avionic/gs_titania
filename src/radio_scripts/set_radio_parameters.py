@@ -8,7 +8,7 @@ import radio_utils
 
 # Default requested values
 requested_values = {
-    'S0:FORMAT': 26, 
+    'S0:FORMAT': 25, 
     'S1:SERIAL_SPEED': 57, 
     'S2:AIR_SPEED': 32, 
     'S3:NETID': 18, 
@@ -34,6 +34,9 @@ if __name__ == '__main__':
             second_port = sys.argv[2]
             min_freq = int(sys.argv[3])
             max_freq = int(sys.argv[4])
+            air_speed = int(sys.argv[5])
+
+            requested_values['S2:AIR_SPEED'] = air_speed
             requested_values['S8:MIN_FREQ'] = min_freq
             requested_values['S9:MAX_FREQ'] = max_freq
 
