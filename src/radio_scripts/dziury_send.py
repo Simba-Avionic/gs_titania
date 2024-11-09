@@ -26,17 +26,18 @@ def main():
         sending_frequency = 50
     try:
         i = 1
-        with radio_utils.serial.Serial(selected_port, detected_baud, timeout=0.000001) as ser:
+        with radio_utils.serial.Serial(selected_port, detected_baud, timeout=100) as ser:
             ser.flushInput()      
             ser.flushOutput()
-            while True:
+            start_time = time.time()                
+            while time.time() - start_time < 10:
                 time_ms = int(time.time()*1000)
                 data_to_send = "G "+str(i)+" "+str(time_ms)
                 checksum = i + time_ms
-                data_to_send = data_to_send + " " + str(checksum) + " S"
+                data_to_send = data_to_send + " " + str(checksum) + " SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSssSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"
                 n = send_data(ser, (data_to_send).encode())
                 print(f'Sent {n} bytes: {data_to_send}')
-                radio_utils.time.sleep(1/sending_frequency) 
+                # radio_utils.time.sleep(1/sending_frequency) 
                 i = i + 1
     except radio_utils.serial.SerialException as e:
         print(f'Error: {e}')

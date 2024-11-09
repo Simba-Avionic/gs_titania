@@ -7,7 +7,7 @@ set trans_port="COM7"
 set receive_port="COM5"
 set reading_period=7
 set sending_frequencies=500
-set air_speeds=64 
+set air_speeds=128 
 
 :: Loop through each max_freq value
 for %%f in (%max_freqs%) do (
@@ -15,7 +15,7 @@ for %%f in (%max_freqs%) do (
         for %%y in (%air_speeds%) do (
 
             :: Set radio parameters
-            start /wait "set_radio_parameters" cmd /c python "set_radio_parameters.py" %trans_port% %receive_port% %min_freq% %%f %air_speeds%
+            start /wait "set_radio_parameters" cmd /c python "set_radio_parameters.py" %trans_port% %receive_port% %min_freq% %%f %%y
             timeout /t 3
 
             :: Send message on receive port
