@@ -1,0 +1,12 @@
+Speed: 100B/s Speed: 100B/s Packet Error Rate (PER): 0.0 Packet Error Rate (PER): 0.0 Bit Error Rate (BER): 0.0000
+Speed: 200B/s Packet Error Rate (PER): 0.0 Packet Error Rate (PER): 0.0 Bit Error Rate (BER): 0.0000
+Speed: 300B/s Packet Error Rate (PER): 0.0 Packet Error Rate (PER): 0.0 Bit Error Rate (BER): 0.0000
+Speed: 400B/s Packet Error Rate (PER): 0.0 Packet Error Rate (PER): 0.0 Bit Error Rate (BER): 0.0000
+Speed: 500B/s Packet Error Rate (PER): 0.0 Packet Error Rate (PER): 0.0 Bit Error Rate (BER): 0.0000
+Speed: 600B/s Packet Error Rate (PER): 0.0 Packet Error Rate (PER): 0.0 Bit Error Rate (BER): 0.0000
+Speed: 700B/s Packet Error Rate (PER): 0.0 Packet Error Rate (PER): 0.0 Bit Error Rate (BER): 0.0000
+Speed: 800B/s Packet Error Rate (PER): 0.0 Packet Error Rate (PER): 0.0 Bit Error Rate (BER): 0.0000
+Speed: 900B/s Packet Error Rate (PER): 0.0 Packet Error Rate (PER): 0.0 Bit Error Rate (BER): 0.0000
+Speed: 1000B/s Packet Error Rate (PER): 0.0 Packet Error Rate (PER): 0.0 Bit Error Rate (BER): 0.0000
+Speed: 2000B/s Packet Error Rate (PER): 0.606 Bit Error Rate (BER): 0.6060
+Speed: 3000B/s Packet Error Rate (PER): 0.654 Bit Error Rate (BER): 0.6540

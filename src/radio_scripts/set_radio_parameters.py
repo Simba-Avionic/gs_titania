@@ -4,18 +4,18 @@ import os
 # Add the parent directory to the system path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import radio_utils
+import radio_utils.radio_utils as radio_utils
 
 # Default requested values
 requested_values = {
-    'S0:FORMAT': 25, 
+    'S0:FORMAT': 26, 
     'S1:SERIAL_SPEED': 57, 
-    'S2:AIR_SPEED': 32, 
+    'S2:AIR_SPEED': 250, 
     'S3:NETID': 18, 
-    'S4:TXPOWER': 2, 
+    'S4:TXPOWER': 20, 
     'S5:ECC': 0, 
     'S6:MAVLINK': 1, 
-    'S7:OPPRESEND': 1, 
+    'S7:OPPRESEND': 0, 
     'S8:MIN_FREQ': 433070, # Default value; can be overridden
     'S9:MAX_FREQ': 433430,  # Default value; can be overridden
     'S10:NUM_CHANNELS': 10, 
@@ -45,20 +45,24 @@ if __name__ == '__main__':
             sys.exit(1)
     else:
         first_port = 'COM7'
+        
+    baud_rate = 57600
 
     # First radio setup
     serial_port = first_port
-    baud_rate = 57600
     transmitter = radio_utils.RadioModule(serial_port, baud_rate)
     transmitter.set_params_to_request(requested_values)
+    transmitter.leave_command_mode()
+
     # transmitter.send_at_command('AT&W')
     # print(transmitter.get_current_parameters())
 
     if len(sys.argv) > 1:
         # Second radio setup
         serial_port = second_port
-        baud_rate = 57600
         transmitter = radio_utils.RadioModule(serial_port, baud_rate)
         transmitter.set_params_to_request(requested_values)
+        transmitter.leave_command_mode()
+
         # transmitter.send_at_command('AT&W')
         

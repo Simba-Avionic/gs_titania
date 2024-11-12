@@ -1,0 +1,1 @@
+python -m pymavlink.tools.mavgen --lang=Python --output=generated/ custom_dialect.xml

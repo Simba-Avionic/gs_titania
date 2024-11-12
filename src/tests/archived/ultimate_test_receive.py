@@ -3,9 +3,9 @@ import os
 # Add the parent directory to the system path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import radio_utils
-from radio_utils.calculations import average_reports
-import radio_utils.testing as t
+import radio_utils.radio_utils as radio_utils
+from tests.archived.calculations import average_reports
+import tests.archived.testing as t
 import re
 
 # Consts
@@ -90,9 +90,8 @@ def main():
         receiver.reset_output_buffer()
         receiver.read_all()
         # try to reboot before running test
-        for _ in range(3):
-            receiver.send_at_command('ATO')
-            receiver.send_at_command("ATZ")
+        receiver.send_at_command('ATO')
+        receiver.send_at_command("ATZ")
         receiver.set_params_to_request(DEFAULT_PARAMS) # can comment it out to save some time if already set ---> best/easiest way to edit params
         receiver.leave_command_mode()
         # print(receiver.get_current_parameters()) # can comment it out to save some time

@@ -1,0 +1,14 @@
+<!-- custom_dialect.xml -->
+<mavlink>
+    <!-- Include the common.xml file for standard messages and types -->
+    <include>common.xml</include>
+
+    <messages>
+        <!-- Custom message definition -->
+        <message id="200" name="TEST_PAYLOAD">
+            <description>Custom message for testing payload transmission</description>
+            <field type="uint16_t" name="sequence_number">Packet sequence number</field>
+            <field type="char[200]" name="payload">Test payload data</field>
+        </message>
+    </messages>
+</mavlink>

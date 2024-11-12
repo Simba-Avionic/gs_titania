@@ -3,23 +3,23 @@ import os
 # Add the parent directory to the system path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import radio_utils
-from radio_utils.calculations import average_reports
-import radio_utils.testing
+import radio_utils.radio_utils as radio_utils
+from tests.archived.calculations import average_reports
+import tests.archived.testing
 
 # Consts
 NUM_OF_PACKAGES = 1024
 
-DEFAULT_PARAMS = radio_utils.testing.DEFAULT_PARAMS
+DEFAULT_PARAMS = tests.archived.testing.DEFAULT_PARAMS
 
-DEFAULT_PACKET_LIST_200B = radio_utils.testing.DEFAULT_PACKET_LIST_200B
-DEFAULT_PACKET_LIST_64B = radio_utils.testing.DEFAULT_PACKET_LIST_64B
-DEFAULT_PACKET_LIST_16B = radio_utils.testing.DEFAULT_PACKET_LIST_16B
+DEFAULT_PACKET_LIST_200B = tests.archived.testing.DEFAULT_PACKET_LIST_200B
+DEFAULT_PACKET_LIST_64B = tests.archived.testing.DEFAULT_PACKET_LIST_64B
+DEFAULT_PACKET_LIST_16B = tests.archived.testing.DEFAULT_PACKET_LIST_16B
 
 all_packages_concatenated = ''
 for i in range(NUM_OF_PACKAGES):
     all_packages_concatenated += DEFAULT_PACKET_LIST_16B[i%len(DEFAULT_PACKET_LIST_16B)].decode()
-all_packages_concatenated = radio_utils.testing.str2bin(all_packages_concatenated)
+all_packages_concatenated = tests.archived.testing.str2bin(all_packages_concatenated)
 
 # Force set values (for convenience sake):
 DEFAULT_PARAMS['S4:TXPOWER'] = 20
@@ -48,8 +48,8 @@ def main():
             print("Stopping receiving.")
         print(f'starts = {all_received_bytes.count("A")} stops = {all_received_bytes.count("O")}')
 
-        all_received_bits = radio_utils.testing.str2bin(all_received_bytes)
-        print(f'BER = {radio_utils.testing.calculate_ber(all_packages_concatenated,all_received_bits)}%')
+        all_received_bits = tests.archived.testing.str2bin(all_received_bytes)
+        print(f'BER = {tests.archived.testing.calculate_ber(all_packages_concatenated,all_received_bits)}%')
 
 
 

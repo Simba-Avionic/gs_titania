@@ -1,43 +1,51 @@
 import sys
 import os
+
 # Add the parent directory to the system path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import radio_utils
+import radio_utils.radio_utils as radio_utils
 import time
 
+
+
 def send_data(serial_conn, data):
+    """Sends data through the serial connection."""
     return serial_conn.write(data)
 
-def receive_data(serial_conn):
-    return serial_conn.read()
-
 def main():
-    
+    # Retrieve command-line arguments or set defaults
     if len(sys.argv) > 1:
-            selected_port = sys.argv[1]
-            detected_baud = 57600
-            sending_frequency = int(sys.argv[2]) # how often message is send per second
-            print(sending_frequency)
+        selected_port = sys.argv[1]
+        sending_frequency = int(sys.argv[2])  # Messages sent per second
     else:
-        # selected_port, detected_baud = radio_utils.pick_pickables()
         selected_port = "COM7"
-        detected_baud = 57600
         sending_frequency = 50
+
+    detected_baud = 57600
+    
     try:
         i = 1
         with radio_utils.serial.Serial(selected_port, detected_baud, timeout=0.000001) as ser:
-            ser.flushInput()      
+            ser.flushInput()
             ser.flushOutput()
+            
             while True:
-                time_ms = int(time.time()*1000)
-                data_to_send = "G "+str(i)+" "+str(time_ms)
-                checksum = i + time_ms
-                data_to_send = data_to_send + " " + str(checksum) + " S"
-                n = send_data(ser, (data_to_send).encode())
-                print(f'Sent {n} bytes: {data_to_send}')
-                radio_utils.time.sleep(1/sending_frequency) 
-                i = i + 1
+                # Generate message content
+                time_ms = int(time.time() * 1000)  # Timestamp in milliseconds
+                data_to_send = f"G {i} {time_ms} {i + time_ms} "
+
+                # Pad the message to reach exactly 50 bytes
+                padded_data = data_to_send.ljust(49, '0') + "S"  # Ensures "S" is the last character
+
+                # Send the padded message
+                n = send_data(ser, padded_data.encode())
+                print(f'Sent {n} bytes: {padded_data}')
+
+                # Wait for the next transmission
+                time.sleep(1 / sending_frequency)
+                i += 1
+
     except radio_utils.serial.SerialException as e:
         print(f'Error: {e}')
     except Exception as e:
@@ -45,4 +53,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    

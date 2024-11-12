@@ -3,9 +3,9 @@ import os
 # Add the parent directory to the system path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import radio_utils
-from radio_utils.calculations import average_reports
-import radio_utils.testing as t
+import radio_utils.radio_utils as radio_utils
+from tests.archived.calculations import average_reports
+import tests.archived.testing as t
 
 
 # Consts
@@ -29,7 +29,7 @@ frame_combinations = {
 }
 
 # Extract combinations with speeds slower than 2 kb/s
-slower_than_2kbps = {k: v for k, v in frame_combinations.items() if v[3] < 2 * 1024}
+slower_than_5kbps = {k: v for k, v in frame_combinations.items() if v[3] < 5 * 1024}
 # Extract combinations with speeds slower than 16 kb/s
 slower_than_16kbps = {k: v for k, v in frame_combinations.items() if v[3] < 16 * 1024}
 # Extract combinations with speeds slower than 32 kb/s
@@ -50,9 +50,8 @@ def init(*args):
     transmitter.reset_output_buffer()
     transmitter.read_all()
     # try to reboot before running test
-    for _ in range(3):
-        transmitter.send_at_command('ATO')
-        transmitter.send_at_command("ATZ")
+    transmitter.send_at_command('ATO')
+    transmitter.send_at_command("ATZ")
     transmitter.set_params_to_request(DEFAULT_PARAMS) # can comment it out to save some time if already set ---> best/easiest way to edit params
     # print(transmitter.get_current_parameters()) # can comment it out to save some time
     # print(transmitter.get_current_parameters(remote=True)) # can comment it out to save some time
@@ -62,7 +61,7 @@ def calculate_subtests_count(power_list, air_rate_list, X_speed=0, Y_speed=0):
     subtest_count = 0
     for air_spd in air_rate_list:
         if air_spd == X_speed:
-            subtest_count += len(slower_than_2kbps)
+            subtest_count += len(slower_than_5kbps)
         elif air_spd == Y_speed:
             subtest_count += len(slower_than_16kbps)
         else:
@@ -85,7 +84,7 @@ def run_test(transmitter:radio_utils.RadioModule, power_list, air_rate_list, X_s
             if current_subtest >= startFrom:
                 transmitter.set_air_rate(air_spd)
             if air_spd == X_speed:
-                size_amount_speed_list = [[value[0], value[1], value[2]] for value in slower_than_2kbps.values()]
+                size_amount_speed_list = [[value[0], value[1], value[2]] for value in slower_than_5kbps.values()]
             elif air_spd == Y_speed:
                 size_amount_speed_list = [[value[0], value[1], value[2]] for value in slower_than_16kbps.values()]
             else:
@@ -144,7 +143,7 @@ def test_R_01(transmitter:radio_utils.RadioModule):
 def test_R_02(transmitter:radio_utils.RadioModule):
     run_test(transmitter, power_list=[20,17,11,1], air_rate_list=[16,64,250], Y_speed = 16)
 def debug_test(transmitter:radio_utils.RadioModule):
-    run_test(transmitter, power_list=[20], air_rate_list=[2], Y_speed=2)
+    run_test(transmitter, power_list=[20], air_rate_list=[2], X_speed=5)
 
 
 def main():
@@ -153,8 +152,8 @@ def main():
     else:
         transmitter = init()
 
-    # debug_test(transmitter)
-    test_R_01(transmitter)
+    debug_test(transmitter)
+    # test_R_01(transmitter)
 
 
 if __name__ == "__main__":
