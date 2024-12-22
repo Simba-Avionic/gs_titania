@@ -19,10 +19,11 @@ def main():
         selected_port = sys.argv[1]
         sending_frequency = int(sys.argv[2])  # Messages sent per second
     else:
-        selected_port = "COM7"
-        sending_frequency = 50
+        selected_port, sending_frequency = radio_utils.pick_pickables()
+        # selected_port = "COM7"
+        # sending_frequency = 50
 
-    detected_baud = 57600
+    detected_baud = 115200
     
     try:
         i = 1
@@ -40,7 +41,7 @@ def main():
 
                 # Send the padded message
                 n = send_data(ser, padded_data.encode())
-                print(f'Sent {n} bytes: {padded_data}')
+                print(f'Sent {n} bytes: {padded_data.encode()}')
 
                 # Wait for the next transmission
                 time.sleep(1 / sending_frequency)

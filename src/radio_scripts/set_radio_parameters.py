@@ -9,7 +9,7 @@ import radio_utils.radio_utils as radio_utils
 # Default requested values
 requested_values = {
     'S0:FORMAT': 26, 
-    'S1:SERIAL_SPEED': 57, 
+    'S1:SERIAL_SPEED': 115, 
     'S2:AIR_SPEED': 250, 
     'S3:NETID': 18, 
     'S4:TXPOWER': 20, 
@@ -44,14 +44,16 @@ if __name__ == '__main__':
             print("Please enter a valid integer for MAX_FREQ.")
             sys.exit(1)
     else:
-        first_port = 'COM7'
+        first_port = 'COM5'
         
-    baud_rate = 57600
+    baud_rate = 115200
 
     # First radio setup
     serial_port = first_port
     transmitter = radio_utils.RadioModule(serial_port, baud_rate)
     transmitter.set_params_to_request(requested_values)
+    print(transmitter.send_at_command('ATI5'))
+    # transmitter.send_at_command('AT&W')
     transmitter.leave_command_mode()
 
     # transmitter.send_at_command('AT&W')

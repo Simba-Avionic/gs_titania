@@ -8,9 +8,9 @@ import radio_utils.radio_utils as radio_utils
 if __name__ == '__main__':
     # serial_port, baud_rate = radio_utils.pick_pickables()
     serial_port = 'COM5'
-    baud_rate =57600
+    baud_rate =115200
     transmitter = radio_utils.RadioModule(serial_port, baud_rate)
-    receiver = radio_utils.RadioModule('COM7',57600)
+    receiver = radio_utils.RadioModule('COM6',57600)
     transmitter.enter_command_mode(verbose=True)
     receiver.enter_command_mode(verbose=True)
     # print(transmitter.send_at_command('RTZ'))
