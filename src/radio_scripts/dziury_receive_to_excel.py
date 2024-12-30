@@ -69,7 +69,7 @@ def main():
         selected_port = "COM5"
         reading_period = 7
 
-    detected_baud = 115200
+    detected_baud = 57600
 
     last_seqNum = -1
     last_send_timestamp = 0

@@ -19,11 +19,11 @@ def main():
         selected_port = sys.argv[1]
         sending_frequency = int(sys.argv[2])  # Messages sent per second
     else:
-        selected_port, sending_frequency = radio_utils.pick_pickables()
+        selected_port, detected_baud = radio_utils.pick_pickables()
         # selected_port = "COM7"
-        # sending_frequency = 50
+        sending_frequency = 50
 
-    detected_baud = 115200
+    detected_baud = 57600
     
     try:
         i = 1

@@ -39,7 +39,7 @@ def main():
         selected_port = "COM5"
         reading_period = 7
 
-    detected_baud = 115200
+    detected_baud = 57600
 
     last_seqNum = -1
     last_send_timestamp = 0
@@ -128,7 +128,7 @@ def main():
                     dziura_ts = sendTS - last_send_timestamp
                     dziury.append(dziura_ts)
                     delta_ts = dziura_ts / (num_of_lost_messages + 1)
-                    # print("Last ts:", last_send_timestamp % 10000, "now ts", sendTS % 10000, "last_seq:", last_seqNum, "now_seq:", seqNum, "lost_msgs:", num_of_lost_messages, "delta_ts:", delta_ts)
+                    print("Last ts:", last_send_timestamp % 10000, "now ts", sendTS % 10000, "last_seq:", last_seqNum, "now_seq:", seqNum, "lost_msgs:", num_of_lost_messages, "delta_ts:", delta_ts)
 
                     for i in range(num_of_lost_messages):
                         send_timestamps.append(last_send_timestamp + (i + 1) * int(delta_ts))
@@ -146,8 +146,8 @@ def main():
             if len(dziury) > 0:
                 dziury_avg = sum(dziury) / len(dziury)
                 pelne_avg = sum(pelne) / len(pelne)
-                # print("Dziury:", dziury, "avg:", dziury_avg)
-                # print("Pelne:", pelne, "avg:", pelne_avg)
+                print("Dziury:", dziury, "avg:", dziury_avg)
+                print("Pelne:", pelne, "avg:", pelne_avg)
 
             plt.plot(send_timestamps, send_y, "b.", label="Sent Messages")
             plt.plot(recv_timestamps, recv_y, "g.", label="Received Messages")
@@ -158,8 +158,11 @@ def main():
                 first_loss_seq = lost_y[0]
             else:
                 first_loss_after = 0
-                first_loss_seq = lost_y[0]
-
+                if len(lost_y) == 0:
+                    first_loss_seq = 0
+                else:    
+                    first_loss_seq = lost_y[0]
+                
             if 50*sending_frequency > detected_baud/10:
                 additional_text = f't_spd: {50*sending_frequency} B/s (more than Baud)\nmessages_sent: {len(send_y)}\nmessages received: {len(recv_y)}\nmessages lost: {len(lost_y)}\nbaud rate used: {detected_baud}\nfirst loss after: {first_loss_after} ms\nfirst message lost: {first_loss_seq}'
             else:
@@ -174,7 +177,7 @@ def main():
                 # Save the plot with a filename based on parameters
                 plot_filename = f'{air_speed}kbps_{reading_period}s_{sending_frequency}Hz_minf_{min_freq}_maxf_{max_freq}.png'
                 plt.savefig(plot_filename)
-                # print(f'Plot saved as {plot_filename}')
+                print(f'Plot saved as {plot_filename}')
             else:
                 plt.show()
 
@@ -190,8 +193,8 @@ def main():
 
     except radio_utils.serial.SerialException as e:
         print(f'Error: {e}')
-    except Exception as e:
-        print(f'Unexpected error: {e}')
+    # except Exception as e:
+        # print(f'Unexpected error: {e}')
 
 if __name__ == '__main__':
     main()

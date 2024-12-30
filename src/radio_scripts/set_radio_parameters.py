@@ -8,16 +8,16 @@ import radio_utils.radio_utils as radio_utils
 
 # Default requested values
 requested_values = {
-    'S0:FORMAT': 26, 
-    'S1:SERIAL_SPEED': 115, 
-    'S2:AIR_SPEED': 250, 
-    'S3:NETID': 18, 
+    # 'S0:FORMAT': 26, 
+    #'S1:SERIAL_SPEED': 57, 
+    'S2:AIR_SPEED': 64, 
+    'S3:NETID': 25, 
     'S4:TXPOWER': 20, 
     'S5:ECC': 0, 
     'S6:MAVLINK': 1, 
     'S7:OPPRESEND': 0, 
     'S8:MIN_FREQ': 433070, # Default value; can be overridden
-    'S9:MAX_FREQ': 433430,  # Default value; can be overridden
+    'S9:MAX_FREQ': 434790,  # Default value; can be overridden
     'S10:NUM_CHANNELS': 10, 
     'S11:DUTY_CYCLE': 100, 
     'S12:LBT_RSSI': 0, 
@@ -32,9 +32,14 @@ if __name__ == '__main__':
         try:
             first_port = sys.argv[1]
             second_port = sys.argv[2]
-            min_freq = int(sys.argv[3])
-            max_freq = int(sys.argv[4])
-            air_speed = int(sys.argv[5])
+            baud_rate = sys.argv[3]
+            min_freq = int(sys.argv[4])
+            max_freq = int(sys.argv[5])
+            air_speed = int(sys.argv[6])
+            if len(sys.argv) > 6:
+                power_tx = int(sys.argv[7])
+                requested_values['S4:TXPOWER'] = power_tx
+                
 
             requested_values['S2:AIR_SPEED'] = air_speed
             requested_values['S8:MIN_FREQ'] = min_freq
@@ -45,18 +50,20 @@ if __name__ == '__main__':
             sys.exit(1)
     else:
         first_port = 'COM5'
+        baud_rate = 230400
+        # serial_port, baud_rate = radio_utils.pick_pickables()
         
-    baud_rate = 115200
 
     # First radio setup
     serial_port = first_port
     transmitter = radio_utils.RadioModule(serial_port, baud_rate)
     transmitter.set_params_to_request(requested_values)
-    print(transmitter.send_at_command('ATI5'))
+    # print(transmitter.send_at_command('ATI5'))
     # transmitter.send_at_command('AT&W')
     transmitter.leave_command_mode()
+    transmitter.send_at_command('ATZ')
 
-    # transmitter.send_at_command('AT&W')
+
     # print(transmitter.get_current_parameters())
 
     if len(sys.argv) > 1:
