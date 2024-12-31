@@ -1,5 +1,7 @@
 from enum import Enum
 import csv
+from pymavlink import mavutil
+
 
 PACKETS_ARRAY_LENGTH = 20
 # Numbers describe the number of bytes in one package, each list consists of PACKETS_ARRAY_LENGTH packets
@@ -75,3 +77,40 @@ def save_results_to_csv(output_file_name='results.csv', **kwargs):
 
         # Write the values
         writer.writerow(values)
+
+def send_mav_telemetry_500B(transmitter: mavutil.mavlink_connection) -> None:
+    '''
+    Send telemetry packets from the transmitter to the GCS.
+    This emulates the typical pattern of telemetry in ArduPlane 2.75 in AUTO mode.
+
+    The function sends a series of MAVLink messages that together take approximately 500 bytes.
+
+    Parameters:
+    transmitter (mavutil.mavlink_connection): 
+        A MAVLink connection object used to send telemetry packets.
+
+    Returns:
+    None
+    '''    
+ 
+    time_usec = int(1 * 1.0e6) 
+    time_ms = time_usec // 1000
+
+    transmitter.mav.heartbeat_send(1, 3, 217, 10, 4, 3)
+    transmitter.mav.global_position_int_send(time_ms, 3, 1491642131, 737900, 140830, 2008, -433, 224, 35616)
+    transmitter.mav.rc_channels_scaled_send(time_boot_ms=time_ms, port=0, chan1_scaled=280, chan2_scaled=3278, chan3_scaled=-3023, chan4_scaled=0, chan5_scaled=0, chan6_scaled=0, chan7_scaled=0, chan8_scaled=0, rssi=0)
+    
+    transmitter.mav.servo_output_raw_send(time_usec=time_usec, port=0, servo1_raw=1470, servo2_raw=1628, servo3_raw=1479, servo4_raw=1506, servo5_raw=1500, servo6_raw=1556, servo7_raw=1500, servo8_raw=1500)
+    transmitter.mav.rc_channels_raw_send(time_boot_ms=time_ms, port=0, chan1_raw=1470, chan2_raw=1618, chan3_raw=1440, chan4_raw=1509, chan5_raw=1168, chan6_raw=1556, chan7_raw=1224, chan8_raw=994, rssi=0)
+    transmitter.mav.raw_imu_send(time_usec, 562, 382, -3917, -3330, 3445, 35, -24, 226, -523)
+    transmitter.mav.scaled_pressure_send(time_boot_ms=time_ms, press_abs=950.770019531, press_diff=-0.0989062488079, temperature=463)
+    transmitter.mav.sensor_offsets_send(mag_ofs_x=-68, mag_ofs_y=-143, mag_ofs_z=-34, mag_declination=0.206146687269, raw_press=95077, raw_temp=463, gyro_cal_x=-0.063114002347, gyro_cal_y=0.0479440018535, gyro_cal_z=0.0190890002996, accel_cal_x=0.418922990561, accel_cal_y=0.284875005484, accel_cal_z=-0.436598002911)
+    transmitter.mav.sys_status_send(onboard_control_sensors_present=64559, onboard_control_sensors_enabled=64559, onboard_control_sensors_health=64559, load=82, voltage_battery=11877, current_battery=0, battery_remaining=100, drop_rate_comm=0, errors_comm=0, errors_count1=0, errors_count2=0, errors_count3=0, errors_count4=0)
+    transmitter.mav.mission_current_send(seq=1)
+    transmitter.mav.gps_raw_int_send(time_usec=time_usec, fix_type=3, lat=-353637616, lon=1491642012, alt=737900, eph=169, epv=65535, vel=2055, cog=34782, satellites_visible=9)
+    transmitter.mav.nav_controller_output_send(nav_roll=0.0, nav_pitch=0.319999992847, nav_bearing=-18, target_bearing=343, wp_dist=383, alt_error=-37.0900001526, aspd_error=404.800537109, xtrack_error=1.52732038498)
+    transmitter.mav.attitude_send(time_boot_ms=time_ms, roll=0.00283912196755, pitch=-0.0538846850395, yaw=-0.0708072632551, rollspeed=0.226980209351, pitchspeed=-0.00743395090103, yawspeed=-0.154820173979)
+    transmitter.mav.vfr_hud_send(airspeed=21.9519939423, groundspeed=20.5499992371, heading=355, throttle=35, alt=737.900024414, climb=-0.784280121326)
+    transmitter.mav.ahrs_send(omegaIx=0.000540865410585, omegaIy=-0.00631708558649, omegaIz=0.00380697473884, accel_weight=0.0, renorm_val=0.0, error_rp=0.094664350152, error_yaw=0.0121578350663)
+    transmitter.mav.hwstatus_send(Vcc=0, I2Cerr=0)
+    transmitter.mav.wind_send(direction=27.729429245, speed=5.35723495483, speed_z=-1.92264056206)
