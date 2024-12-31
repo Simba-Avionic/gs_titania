@@ -1,5 +1,5 @@
 from enum import Enum
-import csv
+import csv, queue, threading, time
 from pymavlink import mavutil
 
 
@@ -76,7 +76,26 @@ def save_results_to_csv(output_file_name='results.csv', **kwargs):
             writer.writerow(headers)  # Write the headers
 
         # Write the values
-        writer.writerow(values)
+        writer.writerow(values)    
+
+# we use thread based receive to avoid problems with serial buffer overflow in the Linux kernel. <-- MZ: Big? Try disabling and compare
+def thread_mav_receive(module):
+    def receive_thread(mav, q):
+        '''continuously receive packets and put them in the queue'''
+        last_pkt = time.time()
+        while True:
+            m = mav.recv_match(blocking=False)
+            if m is not None:
+                q.put(m)
+                last_pkt = time.time()
+
+    module_queue = queue.Queue()
+    module_thread = threading.Thread(target=receive_thread, args=(module, module_queue))
+    module_thread.daemon = True
+    module_thread.start()
+    return module_queue, module_thread
+
+
 
 def send_mav_telemetry_500B(transmitter: mavutil.mavlink_connection) -> None:
     '''
@@ -114,3 +133,70 @@ def send_mav_telemetry_500B(transmitter: mavutil.mavlink_connection) -> None:
     transmitter.mav.ahrs_send(omegaIx=0.000540865410585, omegaIy=-0.00631708558649, omegaIz=0.00380697473884, accel_weight=0.0, renorm_val=0.0, error_rp=0.094664350152, error_yaw=0.0121578350663)
     transmitter.mav.hwstatus_send(Vcc=0, I2Cerr=0)
     transmitter.mav.wind_send(direction=27.729429245, speed=5.35723495483, speed_z=-1.92264056206)
+
+class PacketStats(object):
+    '''
+    class to hold statistics on the link
+    '''
+    def __init__(self, moduleObj):
+        self.module_sent = 0
+        self.module_received = 0
+        self.module_radio_received = 0
+        self.module_last_bytes_sent = 0
+        self.module_last_bytes_received = 0
+        self.module_bad_data = 0
+        self.last_module_radio = None
+        self.module_txbuf = 100
+        self.module_local_rssi = 0
+        self.module_remote_rssi = 0
+        self.module_local_noise = 0
+        self.module_remote_noise = 0
+        self.module_fixed = 0
+        self.received_errors = 0
+
+        self.moduleObj = moduleObj
+
+    def __str__(self):
+        module_bytes_sent = self.moduleObj.mav.total_bytes_sent - self.module_last_bytes_sent
+        self.module_last_bytes_sent = self.moduleObj.mav.total_bytes_sent
+        module_bytes_received = self.moduleObj.mav.total_bytes_received - self.module_last_bytes_received
+        self.module_last_bytes_received = self.moduleObj.mav.total_bytes_received
+        
+        return_message = f"""    Total_Send/Total_Received/Packets_Received: {self.module_sent}/{self.module_received}/{self.module_received - self.module_radio_received}
+    bytes_sent_now:{module_bytes_sent}
+    bytes_received_now:{module_bytes_received}
+    total_bad_data:{self.module_bad_data}
+    txbuf:{self.module_txbuf} 
+    local_rssi:{self.module_local_rssi} local_noise:{self.module_local_noise}
+    remote_rssi:{self.module_remote_rssi} remote_noise: {self.module_remote_noise}
+    Total_Mav_Loss: {self.moduleObj.mav_loss} Total_PER: {self.moduleObj.packet_loss()}
+    received_errors_total: {self.received_errors}
+    fixed: {self.module_fixed}"""
+        return return_message
+    
+
+def receive_mav_packets(module_queue : queue, stats : PacketStats, show_received_data : bool = False):
+        '''
+        receive packets 
+        '''
+        try:
+            m = module_queue.get(block=False)
+        except queue.Empty:
+            return False
+        if m.get_type() == 'BAD_DATA':
+            stats.module_bad_data += 1
+            return True
+        if show_received_data:
+            print(m)
+        stats.module_received += 1
+        if m.get_type() in ['RADIO','RADIO_STATUS']:
+            #print('VRADIO: ', str(m))
+            stats.module_radio_received += 1            
+            stats.module_txbuf = m.txbuf
+            stats.module_fixed = m.fixed
+            stats.module_local_rssi = m.rssi
+            stats.module_remote_rssi = m.remrssi
+            stats.module_local_noise = m.noise
+            stats.module_remote_noise = m.remnoise
+            stats.received_errors = m.rxerrors # count of packet receive (sent by transmitter) errors
+        return True

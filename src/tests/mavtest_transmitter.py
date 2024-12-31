@@ -1,156 +1,60 @@
-import sys, os, time, threading
-# Add the parent directory to the system path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-import queue as Queue
-
-import radio_utils.testing.testing as testing
-import radio_utils.radio_utils as radio_utils
-
+import time
 from pymavlink import mavutil
 
+from test_config import CONFIG
+import radio_utils.testing.testing as testing
 
-# pretty much copied (adapted) from mavtester.py from
-# https://github.com/ArduPilot/SiK/blob/50189f2990a95f5a11e246edc750b7e9b6c96591/Firmware/tools/mavtester.py
+class MAVTestTransmitter:
+    def __init__(self, config):
+        self.port = config["port_transmitter"]
+        self.baud_rate = config["baud_rate"]
+        self.transmit_rate = config["transmit_rate"]
+        self.override_rate = config["override_rate"]
+        self.show_received_data = config["show_received_data"]
+        self.set_rtscts = config["set_rtscts"]
 
+        # Initialize connection
+        self.transmitter = mavutil.mavlink_connection(self.port, baud=self.baud_rate)
+        self.transmitter.port.timeout = 1
+        self.transmitter.set_rtscts(self.set_rtscts)
 
-try:
-    # Init serial connection
-    # port, baud_rate = radio_utils.pick_pickables()
-    transmitter_port = 'COM5'
-    baud_rate = 57600 # max_transmit_speed = min(baud_rate/9.6, air_speed)
-    transmit_rate = 15  # number of messages per second (1 = 500B/s if everything uncommented in send_telemetry)
-    override_rate = 1
-    show_received_data = False
-    set_rtscts = False
+        # Initialize variables
+        self.start_time = time.time()
+        self.last_transmitter_send = time.time()
 
+        # Initialize stats and threads
+        self.transmitter_queue, self.transmitter_thread = testing.thread_mav_receive(self.transmitter)
+        self.stats = testing.PacketStats(self.transmitter)
 
-    transmitter = mavutil.mavlink_connection(transmitter_port, baud=baud_rate)
+    def send_telemetry(self):
+        """Send telemetry packets at a fixed rate."""
+        testing.send_mav_telemetry_500B(self.transmitter)
+        time.sleep(1 / self.transmit_rate)
+        self.stats.module_sent = self.transmitter.mav.total_packets_sent
 
-    print("Draining ports")
-    transmitter.port.timeout = 1
-    # while True:
-    #     r = transmitter.port.read(1024)
-    #     if not r:
-    #         break
-    #     print("Drained %u bytes from transmitter" % len(r))
-    #     time.sleep(0.01)
+    def process_received_packets(self):
+        """Process received packets from the queue."""
+        while not self.transmitter_queue.empty():
+            testing.receive_mav_packets(self.transmitter_queue, self.stats, self.show_received_data)
 
-    # RTS/CTS protocol is a method of handshaking which uses one wire in each direction to allow each device to indicate to the other whether or not it is ready to receive data at any given moment. 
-    transmitter.set_rtscts(set_rtscts) 
+    def run(self):
+        """Main loop for MAVLink transmitter testing."""
+        # TODO: make the loop bytes_sent dependent if provided input
 
-    def allow_unsigned(mav, msgId):
-        '''see if an unsigned packet should be allowed'''
-        allow = {
-            mavutil.mavlink.MAVLINK_MSG_ID_RADIO : True,
-            mavutil.mavlink.MAVLINK_MSG_ID_RADIO_STATUS : True 
-        }
-        if msgId in allow:
-            return True
-        return False
-
-    # we use thread based receive to avoid problems with serial buffer overflow in the Linux kernel. <-- MZ: Big? Try disabling and compare
-    def receive_thread(mav, q):
-        '''continuously receive packets are put them in the queue'''
-        last_pkt = time.time()
-        while True:
-            m = mav.recv_match(blocking=False)
-            if m is not None:
-                q.put(m)
-                last_pkt = time.time()
-
-    transmitter_queue = Queue.Queue()
-    transmitter_thread = threading.Thread(target=receive_thread, args=(transmitter, transmitter_queue))
-    transmitter_thread.daemon = True
-    transmitter_thread.start()
-
-    # init vars
-    start_time = time.time()
-    last_transmitter_send = time.time()
-
-
-    def recv_transmitter():
-        '''
-        receive packets in the vehicle (transmitter)
-        '''
+        last_report = time.time()
         try:
-            m = transmitter_queue.get(block=False)
-        except Queue.Empty:
-            return False
-        if m.get_type() == 'BAD_DATA':
-            stats.transmitter_bad_data += 1
-            return True
-        if show_received_data:
-            print(m)
-        stats.transmitter_received += 1
-        if m.get_type() in ['RADIO','RADIO_STATUS']:
-            #print('VRADIO: ', str(m))
-            stats.transmitter_radio_received += 1
-            stats.transmitter_txbuf = m.txbuf
-            stats.transmitter_fixed = m.fixed
-            stats.transmitter_rssi = m.rssi
-            stats.receiver_rssi = m.remrssi
-            stats.transmitter_noise = m.noise
-            stats.receiver_noise = m.remnoise
-            stats.received_errors = m.rxerrors # count of packet receive errors (sent by receiver)
-        return True
+            while True:
+                self.send_telemetry()
+                self.process_received_packets()
+
+                if time.time() - last_report >= 1.0:
+                    print("Transmitter stats: ")
+                    print(self.stats)
+                    last_report = time.time()
+        except KeyboardInterrupt:
+            print("Stops Transmitting...")
 
 
-    class PacketStats(object):
-        '''
-        class to hold statistics on the link
-        '''
-        def __init__(self):
-            self.transmitter_sent = 0
-            self.transmitter_received = 0
-            self.transmitter_radio_received = 0
-            self.transmitter_last_bytes_sent = 0
-            self.transmitter_bad_data = 0
-            self.last_transmitter_radio = None
-            self.transmitter_txbuf = 100
-            self.transmitter_rssi = 0
-            self.receiver_rssi = 0
-            self.transmitter_noise = 0
-            self.receiver_noise = 0
-            self.transmitter_fixed = 0
-            self.received_errors = 0
-
-        def __str__(self):
-            transmitter_bytes_sent = transmitter.mav.total_bytes_sent - self.transmitter_last_bytes_sent
-            self.transmitter_last_bytes_sent = transmitter.mav.total_bytes_sent
-            
-            return_message = f"""Transmitter 
-                Total_Send/Total_Received/Packets_Received: {self.transmitter_sent}/{self.transmitter_received}/{self.transmitter_received - self.transmitter_radio_received}
-                bytes_sent:{transmitter_bytes_sent}
-                bad_data:{self.transmitter_bad_data}
-                txbuf:{self.transmitter_txbuf}
-                tx_rssi:{self.transmitter_rssi} tx_noise:{self.transmitter_noise}
-                rx_rssi:{self.receiver_rssi} rx_noise:{self.receiver_noise}
-                mav_loss:{transmitter.mav_loss} packet_loss:{transmitter.packet_loss()}
-                fixed:{self.transmitter_fixed}
-                received_errors: {self.received_errors}"""
-            return return_message
-
-    '''
-    main code
-    '''
-    last_report = time.time()
-    stats = PacketStats()
-
-    while True:
-
-        testing.send_mav_telemetry_500B(transmitter)
-        time.sleep(1/transmit_rate)
-        stats.transmitter_sent = transmitter.mav.total_packets_sent
-
-        while True:
-            recv1 = recv_transmitter()
-            if not recv1:
-                break
-
-        if time.time() - last_report >= 1.0:
-            print(f"time passed since last report: {time.time() - last_report}")
-            print(stats)
-            last_report = time.time()
-except KeyboardInterrupt:
-    print("Stops Transmitting...")
+if __name__ == '__main__':
+    mavtest = MAVTestTransmitter(CONFIG)
+    mavtest.run()
