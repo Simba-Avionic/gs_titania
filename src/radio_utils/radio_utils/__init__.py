@@ -443,6 +443,7 @@ class RadioModule(serial.Serial):
                     self.send_at_command(f'AT{s_parameter_num}={value_to_set}')
         else:
             print('Already set to requested values')
+        self.leave_command_mode()
 
     ## getters ##
     def get_current_parameters(self,remote=False):

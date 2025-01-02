@@ -143,6 +143,27 @@ class PacketStats(object):
 
         self.moduleObj = moduleObj
     
+    def clean_stats(self):
+        self.module_sent = 0
+        self.module_received = 0
+        self.module_radio_received = 0
+        self.module_last_bytes_sent = 0
+        self.packets_received = 0
+        self.total_bytes_sent = 0
+        self.module_bytes_sent_now = 0
+        self.total_bytes_received = 0
+        self.module_bytes_received_now = 0
+        self.module_last_bytes_received = 0
+        self.module_bad_data = 0
+        self.last_module_radio = None
+        self.module_txbuf = 100
+        self.module_local_rssi = 0
+        self.module_remote_rssi = 0
+        self.module_local_noise = 0
+        self.module_remote_noise = 0
+        self.module_fixed = 0
+        self.received_errors = 0
+    
     def update_stats(self):
         # Update total values
         self.total_bytes_sent = self.moduleObj.mav.total_bytes_sent
@@ -191,12 +212,18 @@ class MAVTestNode:
         self.mavlink.set_rtscts(self.set_rtscts)
 
         # Initialize variables
-        self.start_time = time.time()
         self.last_send_time = time.time()
 
         # Initialize stats and threads
+        self.kill_receiving_thread = False
         self.module_queue, self.thread = self.thread_mav_receive()
         self.stats = PacketStats(self.mavlink)
+
+    def close_connection(self):
+        """Clean up the receiving thread and close the MAVLink connection."""
+        self.kill_receiving_thread = True
+        self.thread.join()  # Ensure thread terminates properly
+        self.mavlink.port.close()
 
     # we use thread based receive to avoid problems with serial buffer overflow in the Linux kernel. <-- MZ: Big? Try disabling and compare
     def thread_mav_receive(self):
@@ -208,6 +235,8 @@ class MAVTestNode:
                 if m is not None:
                     q.put(m)
                     last_pkt = time.time()
+                if self.kill_receiving_thread:
+                    break
 
         module_queue = queue.Queue()
         module_thread = threading.Thread(target=receive_thread, args=(self.mavlink, module_queue))
@@ -264,7 +293,6 @@ class MAVTestNode:
 
                 if self.is_receiver:
                     self.send_heartbeat()
-                    pass
                 else:
                     self.send_telemetry()
                 self.stats.module_sent = self.mavlink.mav.total_packets_sent
