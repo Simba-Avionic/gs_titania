@@ -78,24 +78,6 @@ def save_results_to_csv(output_file_name='results.csv', **kwargs):
         # Write the values
         writer.writerow(values)    
 
-# we use thread based receive to avoid problems with serial buffer overflow in the Linux kernel. <-- MZ: Big? Try disabling and compare
-def thread_mav_receive(module):
-    def receive_thread(mav, q):
-        '''continuously receive packets and put them in the queue'''
-        last_pkt = time.time()
-        while True:
-            m = mav.recv_match(blocking=False)
-            if m is not None:
-                q.put(m)
-                last_pkt = time.time()
-
-    module_queue = queue.Queue()
-    module_thread = threading.Thread(target=receive_thread, args=(module, module_queue))
-    module_thread.daemon = True
-    module_thread.start()
-    return module_queue, module_thread
-
-
 
 def send_mav_telemetry_500B(transmitter: mavutil.mavlink_connection) -> None:
     '''
@@ -143,6 +125,11 @@ class PacketStats(object):
         self.module_received = 0
         self.module_radio_received = 0
         self.module_last_bytes_sent = 0
+        self.packets_received = 0
+        self.total_bytes_sent = 0
+        self.module_bytes_sent_now = 0
+        self.total_bytes_received = 0
+        self.module_bytes_received_now = 0
         self.module_last_bytes_received = 0
         self.module_bad_data = 0
         self.last_module_radio = None
@@ -155,48 +142,169 @@ class PacketStats(object):
         self.received_errors = 0
 
         self.moduleObj = moduleObj
+    
+    def update_stats(self):
+        # Update total values
+        self.total_bytes_sent = self.moduleObj.mav.total_bytes_sent
+        self.total_bytes_received = self.moduleObj.mav.total_bytes_received
+        # Calculate bytes sent/received now
+        self.module_bytes_sent_now = self.total_bytes_sent  - self.module_last_bytes_sent
+        # print(f'{self.total_bytes_sent}  - {self.module_last_bytes_sent}')
+        self.module_bytes_received_now = self.total_bytes_received - self.module_last_bytes_received
+        # Update "last" values after the "now" calculation
+        self.module_last_bytes_sent = self.total_bytes_sent
+        self.module_last_bytes_received = self.total_bytes_received
 
+        # Update additional stats
+        self.packets_received = self.module_received - self.module_radio_received
     def __str__(self):
-        module_bytes_sent = self.moduleObj.mav.total_bytes_sent - self.module_last_bytes_sent
-        self.module_last_bytes_sent = self.moduleObj.mav.total_bytes_sent
-        module_bytes_received = self.moduleObj.mav.total_bytes_received - self.module_last_bytes_received
-        self.module_last_bytes_received = self.moduleObj.mav.total_bytes_received
         
-        return_message = f"""    Total_Send/Total_Received/Packets_Received: {self.module_sent}/{self.module_received}/{self.module_received - self.module_radio_received}
-    bytes_sent_now:{module_bytes_sent}
-    bytes_received_now:{module_bytes_received}
+        
+        return_message = f"""    Total_Send/Total_Received/Packets_Received: {self.module_sent}/{self.module_received}/{self.packets_received}
+    bytes_sent_now:{self.module_bytes_sent_now}
+    bytes_received_now:{self.module_bytes_received_now}
+    total_bytes_sent:{self.total_bytes_sent}
+    total_bytes_received:{self.total_bytes_received}
     total_bad_data:{self.module_bad_data}
     txbuf:{self.module_txbuf} 
     local_rssi:{self.module_local_rssi} local_noise:{self.module_local_noise}
     remote_rssi:{self.module_remote_rssi} remote_noise: {self.module_remote_noise}
-    Total_Mav_Loss: {self.moduleObj.mav_loss} Total_PER: {self.moduleObj.packet_loss()}
+    total_Mav_Loss: {self.moduleObj.mav_loss} Total_PER: {self.moduleObj.packet_loss()}
     received_errors_total: {self.received_errors}
     fixed: {self.module_fixed}"""
         return return_message
     
+class MAVTestNode:
+    def __init__(self, config, is_receiver=False):
+        self.port = config["port_receiver"] if is_receiver else config["port_transmitter"]
+        self.baud_rate = config["baud_rate"]
+        self.transmit_rate = config.get("transmit_rate", 0)
+        self.override_rate = config.get("override_rate", 0)
+        self.show_received_data = config["show_received_data"]
+        self.set_rtscts = config["set_rtscts"]
+        self.is_receiver = is_receiver
+        self.target_packets_amount = config["target_packets_amount"]
 
-def receive_mav_packets(module_queue : queue, stats : PacketStats, show_received_data : bool = False):
+        # Initialize connection
+        self.mavlink = mavutil.mavlink_connection(self.port, baud=self.baud_rate)
+        self.mavlink.port.timeout = 0.0001
+        self.mavlink.set_rtscts(self.set_rtscts)
+
+        # Initialize variables
+        self.start_time = time.time()
+        self.last_send_time = time.time()
+
+        # Initialize stats and threads
+        self.module_queue, self.thread = self.thread_mav_receive()
+        self.stats = PacketStats(self.mavlink)
+
+    # we use thread based receive to avoid problems with serial buffer overflow in the Linux kernel. <-- MZ: Big? Try disabling and compare
+    def thread_mav_receive(self):
+        def receive_thread(mav, q):
+            '''continuously receive packets and put them in the queue'''
+            last_pkt = time.time()
+            while True:
+                m = mav.recv_match(blocking=False)
+                if m is not None:
+                    q.put(m)
+                    last_pkt = time.time()
+
+        module_queue = queue.Queue()
+        module_thread = threading.Thread(target=receive_thread, args=(self.mavlink, module_queue))
+        module_thread.daemon = True
+        module_thread.start()
+        return module_queue, module_thread
+
+    def receive_mav_packets(self):
         '''
         receive packets 
         '''
         try:
-            m = module_queue.get(block=False)
+            m = self.module_queue.get(block=False)
         except queue.Empty:
             return False
         if m.get_type() == 'BAD_DATA':
-            stats.module_bad_data += 1
+            self.stats.module_bad_data += 1
             return True
-        if show_received_data:
+        if self.show_received_data:
             print(m)
-        stats.module_received += 1
+        self.stats.module_received += 1
         if m.get_type() in ['RADIO','RADIO_STATUS']:
-            #print('VRADIO: ', str(m))
-            stats.module_radio_received += 1            
-            stats.module_txbuf = m.txbuf
-            stats.module_fixed = m.fixed
-            stats.module_local_rssi = m.rssi
-            stats.module_remote_rssi = m.remrssi
-            stats.module_local_noise = m.noise
-            stats.module_remote_noise = m.remnoise
-            stats.received_errors = m.rxerrors # count of packet receive (sent by transmitter) errors
+            # print(str(m)) # print RADIO_STATUS
+            self.stats.module_radio_received += 1            
+            self.stats.module_txbuf = m.txbuf
+            self.stats.module_fixed = m.fixed
+            self.stats.module_local_rssi = m.rssi
+            self.stats.module_remote_rssi = m.remrssi
+            self.stats.module_local_noise = m.noise
+            self.stats.module_remote_noise = m.remnoise
+            self.stats.received_errors = m.rxerrors # count of packet receive (sent by transmitter) errors
         return True
+    
+    def send_telemetry(self):
+        """Send telemetry packets (transmitter-specific)."""
+        if not self.is_receiver:
+            send_mav_telemetry_500B(self.mavlink)
+            time.sleep(1 / self.transmit_rate)
+
+    def send_heartbeat(self):
+        """Send heartbeat (receiver-specific)."""
+        if self.is_receiver:
+            now = time.time()
+            if now - self.last_send_time >= 1.0:
+                self.mavlink.mav.heartbeat_send(1, 6, 0, 0, 0, 0)
+                self.last_send_time = now
+
+    def run(self):
+        """Main loop for MAVLink node testing."""
+        last_report = time.time()
+        beginning_of_the_test_time = last_report
+        try:
+            while True:
+
+                if self.is_receiver:
+                    self.send_heartbeat()
+                    pass
+                else:
+                    self.send_telemetry()
+                self.stats.module_sent = self.mavlink.mav.total_packets_sent
+
+                while not self.module_queue.empty():
+                    # if self.is_receiver:
+                    #     print(f"Receiver queue size: {self.module_queue.qsize()}")
+                    # else:
+                    #     print(f"Transmitter queue size: {self.module_queue.qsize()}")
+                    self.receive_mav_packets()
+
+                if time.time() - last_report >= 1: # print status every second
+                    self.stats.update_stats() # # threading black magic shenanigans? <--- faster if updated outside the if statement 
+                    print(f"{'Receiver' if self.is_receiver else 'Transmitter'} stats: ")
+                    print(self.stats)
+                    last_report = time.time()
+
+                time.sleep(0.000000001) # threading black magic shenanigans? <---- queue read is instantenious thanks to this
+                    
+                if self.is_receiver:
+                    if (self.stats.packets_received+self.mavlink.mav_loss) >= self.target_packets_amount:
+                        break
+                else:
+                    if self.stats.module_sent >= self.target_packets_amount:
+                        break
+            
+            self.stats.update_stats()
+            print(f"{'Receiver' if self.is_receiver else 'Transmitter'} last stats: ")
+            print(self.stats)
+            test_time = time.time() - beginning_of_the_test_time
+            if self.is_receiver:
+                print(f"Receiver has reached the target of {self.target_packets_amount} packets (of which {self.mavlink.mav_loss} were lost) received in {test_time}s.")
+                print(f'Receive speed: {int(self.stats.total_bytes_received/test_time)}B/s')
+            else:
+                print(f"Transmitter has reached the target of {self.target_packets_amount} packets sent in {test_time}s.")
+                print(f'Transmission speed: {int(self.stats.total_bytes_sent/test_time)}B/s')
+
+            
+                    
+        except KeyboardInterrupt:
+            print(f"Stops {'Receiving' if self.is_receiver else 'Transmitting'}...")
+            print(f"{'Receiver' if self.is_receiver else 'Transmitter'} last stats: ")
+            print(self.stats)
