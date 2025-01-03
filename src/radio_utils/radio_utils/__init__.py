@@ -431,19 +431,29 @@ class RadioModule(serial.Serial):
             print("Failed to enter command mode")
         return False
 
-    def set_params_to_request(self,requested_params) -> None:
-        save_to_EEPROM = False
+    def set_params_to_request(self, requested_params) -> None:
+        '''mind that this func doesn't save parameters to EEPROM'''
         current_params = self.get_current_parameters()
-        request_params_mismatch_dict = compare_params(current_params,requested_params)
+        request_params_mismatch_dict = compare_params(current_params, requested_params)
+
         if request_params_mismatch_dict:
             for key, value in request_params_mismatch_dict.items():
                 if not value:
                     s_parameter_num = key.split(':')[0]
                     value_to_set = eval(f'requested_params[\'{key}\']')
+                    
+                    # # Additional case for ATS1 (baud rate)
+                    # if s_parameter_num == 'S1':
+                    #     print("Custom logic for ATS1")
+                    #     # Implement your ATS1-specific logic here
+                    #     self.send_at_command(f'AT{s_parameter_num}={value_to_set}')
+                    #     self.send_at_command('AT&W') # write to EEPROM (leaves command mode)
+                    #     self.send_at_command('ATZ') # reset radio (can't be in command mode)
+                    #     self.enter_command_mode() 
+                    # else:
                     self.send_at_command(f'AT{s_parameter_num}={value_to_set}')
         else:
             print('Already set to requested values')
-        self.leave_command_mode()
 
     ## getters ##
     def get_current_parameters(self,remote=False):
@@ -479,6 +489,21 @@ class RadioModule(serial.Serial):
         else:
             print("Failed to enter command mode")
             return
+
+def reboot_radios(serial_port1, baud_rate, serial_port2 = None):
+    receiver = RadioModule(serial_port1,baud_rate)
+    receiver.enter_command_mode(verbose=True)
+    # print(transmitter.send_at_command('RTZ'))
+    print(receiver.send_at_command('AT&F'))
+    print(receiver.send_at_command('AT&W'))
+    print(receiver.send_at_command('ATZ'))
+
+    if serial_port2 is not None:
+        transmitter = RadioModule(serial_port2, baud_rate)
+        transmitter.enter_command_mode(verbose=True)
+        print(transmitter.send_at_command('AT&F'))
+        print(transmitter.send_at_command('AT&W')) # for ATZ to work, radio can't be in the command mode, ATO theoretically leaves it, AT&W probably too
+        print(transmitter.send_at_command('ATZ'))
 
 # if __name__ == '__main__':
 #     # selected_port, detected_baud = pick_pickables()

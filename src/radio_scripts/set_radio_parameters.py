@@ -9,7 +9,7 @@ import radio_utils.radio_utils as radio_utils
 # Default requested values
 requested_values = {
     # 'S0:FORMAT': 26, 
-    #'S1:SERIAL_SPEED': 57, 
+    'S1:SERIAL_SPEED': 115, 
     'S2:AIR_SPEED': 64, 
     'S3:NETID': 25, 
     'S4:TXPOWER': 20, 
@@ -50,7 +50,7 @@ if __name__ == '__main__':
             sys.exit(1)
     else:
         first_port = 'COM5'
-        baud_rate = 230400
+        baud_rate = 57600
         # serial_port, baud_rate = radio_utils.pick_pickables()
         
 

@@ -3,24 +3,24 @@ import sys, os
 # Add the parent directory to the system path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-'''uncomment if you want to check available serial ports and baud rate'''
+'''uncomment and run if you want to check available serial ports and baud rate'''
 # import radio_utils.radio_utils as radio_utils
 # radio_utils.pick_pickables() 
 
-CONFIG = {
+DEFAULT_CONFIG = {
     "port_receiver": "COM7",
     "port_transmitter": "COM5",
-    "baud_rate": 57600, # max_transmit_speed = min(baud_rate/9.6, air_speed)
-    "transmit_rate": 6, # number of messages per second (1 = 500B/s if everything uncommented in send_telemetry)
+    "baud_rate": 115200, # max_transmit_speed = min(baud_rate/9.6, air_speed)
+    "transmit_rate": 2, # number of messages per second (1 = 500B/s if everything uncommented in send_telemetry)
     "override_rate": 1,  # idk
     "show_received_data": False,
     "set_rtscts": False, # Request to send and clear to send; no idea how to implement it for now
-    "target_packets_amount" : 400 # minimum packages amount to be sent/received
+    "target_packets_amount" : 800 # minimum packages amount to be sent/received
 }
 
-CONFIG_RADIO = {
+DEFAULT_CONFIG_RADIO = {
     # 'S0:FORMAT': 26, 
-    #'S1:SERIAL_SPEED': 57, 
+    'S1:SERIAL_SPEED': 115, 
     'S2:AIR_SPEED': 64, 
     'S3:NETID': 25, 
     'S4:TXPOWER': 20, 
@@ -35,16 +35,8 @@ CONFIG_RADIO = {
     'S13:MANCHESTER': 0, 
     'S14:RTSCTS': 0, 
     'S15:MAX_WINDOW': 131
-
 }
 
-CONFIG2 = {
-    "port_receiver": "COM5",
-    "port_transmitter": "COM5",
-    "baud_rate": 57600, # max_transmit_speed = min(baud_rate/9.6, air_speed)
-    "transmit_rate": 15, # number of messages per second (1 = 500B/s if everything uncommented in send_telemetry)
-    "override_rate": 2,  # idk
-    "show_received_data": False,
-    "set_rtscts": False, # Request to send and clear to send; no idea how to implement it for now
-    "target_packets_amount" : 400 # minimum packages amount to be sent/received
-}
+TEST_1_AIRSPEEDS = [32, 48, 64, 96, 128, 192, 250]
+TEST_1_TRANSMIT_RATES = [1,2,4,8,12,15]
+

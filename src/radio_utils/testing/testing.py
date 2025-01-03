@@ -140,29 +140,10 @@ class PacketStats(object):
         self.module_remote_noise = 0
         self.module_fixed = 0
         self.received_errors = 0
+        self.total_mav_loss = 0
+        self.per = 0
 
         self.moduleObj = moduleObj
-    
-    def clean_stats(self):
-        self.module_sent = 0
-        self.module_received = 0
-        self.module_radio_received = 0
-        self.module_last_bytes_sent = 0
-        self.packets_received = 0
-        self.total_bytes_sent = 0
-        self.module_bytes_sent_now = 0
-        self.total_bytes_received = 0
-        self.module_bytes_received_now = 0
-        self.module_last_bytes_received = 0
-        self.module_bad_data = 0
-        self.last_module_radio = None
-        self.module_txbuf = 100
-        self.module_local_rssi = 0
-        self.module_remote_rssi = 0
-        self.module_local_noise = 0
-        self.module_remote_noise = 0
-        self.module_fixed = 0
-        self.received_errors = 0
     
     def update_stats(self):
         # Update total values
@@ -175,9 +156,11 @@ class PacketStats(object):
         # Update "last" values after the "now" calculation
         self.module_last_bytes_sent = self.total_bytes_sent
         self.module_last_bytes_received = self.total_bytes_received
-
+        
         # Update additional stats
         self.packets_received = self.module_received - self.module_radio_received
+        self.total_mav_loss = self.moduleObj.mav_loss
+        self.per = self.moduleObj.packet_loss()
     def __str__(self):
         
         
@@ -190,13 +173,13 @@ class PacketStats(object):
     txbuf:{self.module_txbuf} 
     local_rssi:{self.module_local_rssi} local_noise:{self.module_local_noise}
     remote_rssi:{self.module_remote_rssi} remote_noise: {self.module_remote_noise}
-    total_Mav_Loss: {self.moduleObj.mav_loss} Total_PER: {self.moduleObj.packet_loss()}
+    total_mav_Loss: {self.total_mav_loss} Total_PER: {self.moduleObj.packet_loss()}
     received_errors_total: {self.received_errors}
     fixed: {self.module_fixed}"""
         return return_message
     
 class MAVTestNode:
-    def __init__(self, config, is_receiver=False):
+    def __init__(self, config, config_radio, is_receiver=False):
         self.port = config["port_receiver"] if is_receiver else config["port_transmitter"]
         self.baud_rate = config["baud_rate"]
         self.transmit_rate = config.get("transmit_rate", 0)
@@ -206,6 +189,10 @@ class MAVTestNode:
         self.is_receiver = is_receiver
         self.target_packets_amount = config["target_packets_amount"]
 
+        self.air_speed = config_radio["S2:AIR_SPEED"]
+        self.power = config_radio["S4:TXPOWER"]
+        self.bandwidth = config_radio["S9:MAX_FREQ"] - config_radio["S8:MIN_FREQ"]
+        
         # Initialize connection
         self.mavlink = mavutil.mavlink_connection(self.port, baud=self.baud_rate)
         self.mavlink.port.timeout = 0.0001
@@ -283,6 +270,27 @@ class MAVTestNode:
             if now - self.last_send_time >= 1.0:
                 self.mavlink.mav.heartbeat_send(1, 6, 0, 0, 0, 0)
                 self.last_send_time = now
+    
+    def save_stats_to_csv(self,**kwargs):
+        csv_name = "test_baud_"+str(self.baud_rate)
+        if self.is_receiver:
+            csv_name = csv_name + "_receiver.csv"
+        else:
+            csv_name = csv_name + "_transmitter.csv"
+        save_results_to_csv(csv_name,
+                        POWER = self.power,
+                        BANDWIDTH = self.bandwidth,
+                        AIR_SPEED = self.air_speed,
+                        TRANSMIT_RATE = self.transmit_rate,
+                        BAUD_RATE = self.baud_rate,
+                        L_RSSI = self.stats.module_local_rssi,
+                        R_RSSI = self.stats.module_remote_rssi,
+                        L_NOISE = self.stats.module_local_noise,
+                        R_NOISE = self.stats.module_remote_noise,
+                        PACKETS_LOST_TOTAL = self.stats.total_mav_loss,
+                        PER = self.stats.per,
+                        TEMPERATURE = 0
+                        )
 
     def run(self):
         """Main loop for MAVLink node testing."""
@@ -305,34 +313,39 @@ class MAVTestNode:
                     self.receive_mav_packets()
 
                 if time.time() - last_report >= 1: # print status every second
-                    self.stats.update_stats() # # threading black magic shenanigans? <--- faster if updated outside the if statement 
+                    self.stats.update_stats() # threading black magic shenanigans? <--- faster if updated outside the if statement 
                     print(f"{'Receiver' if self.is_receiver else 'Transmitter'} stats: ")
                     print(self.stats)
+                    # if self.stats.module_bytes_sent_now > 300 or self.stats.module_bytes_received_now > 80: # arbitrary numbers
+                    #     self.save_stats_to_csv()
                     last_report = time.time()
 
                 time.sleep(0.000000001) # threading black magic shenanigans? <---- queue read is instantenious thanks to this
                     
                 if self.is_receiver:
-                    if (self.stats.packets_received+self.mavlink.mav_loss) >= self.target_packets_amount:
+                    if (self.stats.packets_received+self.stats.total_mav_loss) >= self.target_packets_amount:
                         break
                 else:
-                    if self.stats.module_sent >= self.target_packets_amount:
+                    if self.stats.module_sent >= self.target_packets_amount*1.1:
                         break
             
             self.stats.update_stats()
             print(f"{'Receiver' if self.is_receiver else 'Transmitter'} last stats: ")
             print(self.stats)
+            self.save_stats_to_csv()
             test_time = time.time() - beginning_of_the_test_time
             if self.is_receiver:
-                print(f"Receiver has reached the target of {self.target_packets_amount} packets (of which {self.mavlink.mav_loss} were lost) received in {test_time}s.")
+                print(f"Receiver has reached the target of {self.target_packets_amount} packets (of which {self.stats.total_mav_loss} were lost) received in {test_time}s.")
                 print(f'Receive speed: {int(self.stats.total_bytes_received/test_time)}B/s')
             else:
-                print(f"Transmitter has reached the target of {self.target_packets_amount} packets sent in {test_time}s.")
+                print(f"Transmitter has reached the target of {self.target_packets_amount*1.1} packets sent in {test_time}s.")
                 print(f'Transmission speed: {int(self.stats.total_bytes_sent/test_time)}B/s')
 
-            
                     
         except KeyboardInterrupt:
             print(f"Stops {'Receiving' if self.is_receiver else 'Transmitting'}...")
             print(f"{'Receiver' if self.is_receiver else 'Transmitter'} last stats: ")
+            self.stats.update_stats()
             print(self.stats)
+            self.save_stats_to_csv()
+
