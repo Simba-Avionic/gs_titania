@@ -187,7 +187,7 @@ class MAVTestNode:
         self.show_received_data = config["show_received_data"]
         self.set_rtscts = config["set_rtscts"]
         self.is_receiver = is_receiver
-        self.target_packets_amount = config["target_packets_amount"]
+        self.target_packets_amount = round(config["target_packets_amount"]*self.transmit_rate*0.8)
 
         self.air_speed = config_radio["S2:AIR_SPEED"]
         self.power = config_radio["S4:TXPOWER"]

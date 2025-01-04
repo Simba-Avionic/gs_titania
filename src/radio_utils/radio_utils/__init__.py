@@ -14,26 +14,29 @@ def detect_baud_rate(port):
     Returns:
         int: The detected baud rate, or None if detection failed.
     """
-    baud_rates = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
+    baud_rates = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400]
     for baud in baud_rates:
         print("Checking: " + str(baud))
-        try:
-            with serial.Serial(port, baud, timeout=1) as ser:
-                # Clear the buffer
-                ser.reset_input_buffer()
-                ser.reset_output_buffer()
-                # Enter AT command mode
-                time.sleep(1)
+        with serial.Serial(port, baud, timeout=1) as ser:
+            # Clear the buffer
+            ser.reset_input_buffer()
+            ser.reset_output_buffer()
+            # Enter AT command mode
+            ser.write(b'ATI\r\n') # in case it is already in command mode
+            time.sleep(1)
+            response = ser.read_all().decode(errors='ignore').strip()
+            if 'SiK' not in response: 
                 ser.write(b'+++')
                 time.sleep(1)
                 ser.write(b'ATI\r\n')
                 time.sleep(1)
                 response = ser.read_all().decode(errors='ignore').strip()
-                if 'SiK' in response:
-                    ser.write(b'ATO') # leave command mode
-                    return baud
-        except serial.SerialException:
-            pass
+            else:
+                ser.write(b'ATO\r\n') # leave command mode
+                return baud
+            if 'SiK' in response:
+                ser.write(b'ATO\r\n') # leave command mode
+                return baud
     return None
 
 def list_serial_ports():
@@ -335,6 +338,8 @@ class RadioModule(serial.Serial):
         return response
 
     def enter_command_mode(self, verbose = False):
+        self.send_at_command('ATI')
+        time.sleep(1)
         if ('SiK' in self.send_at_command('ATI')):
             time.sleep(1)
             if verbose:
