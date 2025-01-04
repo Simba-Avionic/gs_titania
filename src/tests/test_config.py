@@ -9,10 +9,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 DEFAULT_CONFIG = {
-    "port_receiver": "COM7",
-    "port_transmitter": "COM5",
+    "port_receiver": "COM5",
+    "port_transmitter": "COM6",
     "baud_rate": 57600, # max_transmit_speed = min(baud_rate/9.6, air_speed)
-    "transmit_rate": 2, # number of messages per second (1 = 500B/s if everything uncommented in send_telemetry)
+    "transmit_rate": 4, # number of messages per second (1 = 500B/s if everything uncommented in send_telemetry)
     "override_rate": 1,  # idk
     "show_received_data": False,
     "set_rtscts": False, # Request to send and clear to send; no idea how to implement it for now

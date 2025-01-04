@@ -155,6 +155,17 @@ def test_5(): # duty cycle changing
             # finish
             input("Click enter to continue (receiver/transmitter ready for next subtest)")
 
+def test_6(): # do bawienia sie, dluuuugie nadawanie i odbieranie
+    # setup
+    transmitter = radio_utils.RadioModule(DEFAULT_CONFIG["port_transmitter"],DEFAULT_CONFIG["baud_rate"])
+    transmitter.set_params_to_request(DEFAULT_CONFIG_RADIO)
+    DEFAULT_CONFIG["target_packets_amount"] = 40000000000
+    write_temp_to_csv(transmitter)
+    transmitter.leave_command_mode()
+    transmitter.close()
+    time.sleep(1)
+
+    run_test()
 
 # powinienem był minimalnie inaczej ogarnąć te default configi, odpalaj maks jeden test_x na run 
 if __name__ == '__main__':
@@ -164,7 +175,9 @@ if __name__ == '__main__':
     # test_1()
     # test_2()
     # test_3()
-    test_4()
+    # test_4()
     # test_5()
+    test_6()
+
 
     
