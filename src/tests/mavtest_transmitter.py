@@ -173,11 +173,11 @@ if __name__ == '__main__':
     # radio_utils.reboot_radios(DEFAULT_CONFIG['port_transmitter'],57600) # run if you hope that reset to default will do miracles
     
     # test_1()
-    # test_2()
+    test_2() # ten dziad
     # test_3()
-    # test_4()
+    # test_4() # i ten dziad
     # test_5()
-    test_6()
+    # test_6()
 
 
     

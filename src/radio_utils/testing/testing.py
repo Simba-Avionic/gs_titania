@@ -316,8 +316,8 @@ class MAVTestNode:
                     self.stats.update_stats() # threading black magic shenanigans? <--- faster if updated outside the if statement 
                     print(f"{'Receiver' if self.is_receiver else 'Transmitter'} stats: ")
                     print(self.stats)
-                    # if self.stats.module_bytes_sent_now > 300 or self.stats.module_bytes_received_now > 80: # arbitrary numbers
-                    #     self.save_stats_to_csv()
+                    if self.stats.module_bytes_sent_now > 300 or self.stats.module_bytes_received_now > 80: # arbitrary numbers
+                        self.save_stats_to_csv()
                     last_report = time.time()
 
                 time.sleep(0.000000001) # threading black magic shenanigans? <---- queue read is instantenious thanks to this
@@ -326,7 +326,7 @@ class MAVTestNode:
                     if (self.stats.packets_received+self.stats.total_mav_loss) >= self.target_packets_amount:
                         break
                 else:
-                    if self.stats.module_sent >= self.target_packets_amount*1.1:
+                    if self.stats.module_sent >= self.target_packets_amount*1.3:
                         break
             
             self.stats.update_stats()
@@ -338,7 +338,7 @@ class MAVTestNode:
                 print(f"Receiver has reached the target of {self.target_packets_amount} packets (of which {self.stats.total_mav_loss} were lost) received in {test_time}s.")
                 print(f'Receive speed: {int(self.stats.total_bytes_received/test_time)}B/s')
             else:
-                print(f"Transmitter has reached the target of {self.target_packets_amount*1.1} packets sent in {test_time}s.")
+                print(f"Transmitter has reached the target of {self.target_packets_amount*1.3} packets sent in {test_time}s.")
                 print(f'Transmission speed: {int(self.stats.total_bytes_sent/test_time)}B/s')
 
                     

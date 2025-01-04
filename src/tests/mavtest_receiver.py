@@ -12,7 +12,7 @@ from radio_scripts.change_baud import change_baud
 def run_test():
     # Test exec
     receiver = testing.MAVTestNode(DEFAULT_CONFIG,DEFAULT_CONFIG_RADIO,is_receiver=True)
-    print(f"TRANSMIT RATE: {DEFAULT_CONFIG["transmit_rate"]}")
+    print(f"TRANSMIT RATE: {DEFAULT_CONFIG['transmit_rate']}")
     receiver.run()
     receiver.close_connection()
     time.sleep(1)
@@ -177,8 +177,8 @@ if __name__ == '__main__':
     # radio_utils.reboot_radios(DEFAULT_CONFIG['port_receiver'],57600) # run if you hope that reset to default will do miracles
 
     # test_1()
-    # test_2()
+    test_2() # ten dziad
     # test_3()
-    # test_4()
-    test_6()
+    # test_4() # i ten dziad
+    # test_6()
     
