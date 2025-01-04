@@ -6,17 +6,17 @@ import random
 import string
 
 DEFAULT_PARAMS = {
-    'S1:SERIAL_SPEED': 115,      # 115 = 115200 baudrate 230 = 230400
+    'S1:SERIAL_SPEED': 57,      # 57600 baudrate
     'S3:NETID': 18,
     'S5:ECC': 0,
-    'S8:MIN_FREQ': 434550,
-    'S9:MAX_FREQ': 434650,
-    'S10:NUM_CHANNELS': 42,
+    'S8:MIN_FREQ': 433070,
+    'S9:MAX_FREQ': 433330,
+    'S10:NUM_CHANNELS': 10,
     'S11:DUTY_CYCLE': 100,
     'S12:LBT_RSSI': 0,
     'S13:MANCHESTER': 0,
     'S14:RTSCTS': 0,
-    'S15:MAX_WINDOW': 131
+    'S15:MAX_WINDOW': 100
 }
 
 
@@ -112,13 +112,11 @@ def decode_packet(packet: bytes):
     # Return the decoded data (sequence number and payload)
     return sequence_number, payload_data
     
-def calculate_ber(bytes_sent: bytes, bytes_received: bytes) -> tuple[float,float]:
-    bytes_lost = 0
-    # Bit Error Rate calculation )
+def calculate_ber(bytes_sent: bytes, bytes_received: bytes) -> float:
+    # Bit Error Rate calculation 
     if len(bytes_sent) != len(bytes_received):
         print((f"WARNING sequences are not of equal length. (sent={len(bytes_sent)} received={len(bytes_received)})"))
         # Pad the received sequence with zeros
-        bytes_lost = len(bytes_sent) - len(bytes_received)
         bytes_received = bytes_received.ljust(len(bytes_sent), b'\x00')
     
 
@@ -133,7 +131,7 @@ def calculate_ber(bytes_sent: bytes, bytes_received: bytes) -> tuple[float,float
 
     # Calculate and return BER
     ber = bit_errors / total_bits
-    return ber,bytes_lost
+    return ber
     
 def calculate_per(sent_packets_count,all_received_bytes) -> int:
     # Packet Error Rate calculation (PER)
@@ -153,7 +151,7 @@ def send_packets_at_defined_speed(transmitter,predefined_packets:list[bytes],num
         transmitter.write(packet)
         if log_file is not None:
             time_ms = int(time.time()*1000)
-            log_file.write(f"{time_ms} {packet.hex()}\n")
+            log_file.write(f"{time_ms}: {packet}\n")
             log_file.flush()
 
         time.sleep(1/speed) # packets/s

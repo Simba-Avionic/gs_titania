@@ -4,19 +4,20 @@ import os
 # Add the parent directory to the system path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import radio_utils
+import radio_utils.radio_utils as radio_utils
 
+# Default requested values
 requested_values = {
-    'S0:FORMAT': 25, 
-    'S1:SERIAL_SPEED': 115, # 115200
-    'S2:AIR_SPEED': 128, 
+    # 'S0:FORMAT': 25, 
+    # 'S1:SERIAL_SPEED': 57,  # use change_baud.py for changing serial speed
+    'S2:AIR_SPEED': 64, 
     'S3:NETID': 18, 
-    'S4:TXPOWER': 5, 
+    'S4:TXPOWER': 20, 
     'S5:ECC': 0, 
-    'S6:MAVLINK': 0, 
-    'S7:OPPRESEND': 0, 
-    'S8:MIN_FREQ': 434550, 
-    'S9:MAX_FREQ': 434650, 
+    'S6:MAVLINK': 1, 
+    'S7:OPPRESEND': 1, 
+    'S8:MIN_FREQ': 433070, # Default value; can be overridden
+    'S9:MAX_FREQ': 434790,  # Default value; can be overridden
     'S10:NUM_CHANNELS': 10, 
     'S11:DUTY_CYCLE': 100, 
     'S12:LBT_RSSI': 0, 
@@ -26,27 +27,35 @@ requested_values = {
 }
 
 if __name__ == '__main__':
-    # doesn't work? parameters stay the same
-    # serial_port = 'COM7'
-    # baud_rate = 115200
-    # serial_port2 = 'COM5'
-    # baud_rate2 = 115200
-    # with radio_utils.RadioModule(serial_port, baud_rate, timeout=1) as ser:  
-    #     ser.send_at_command('AT&F') # reset all parameters to factory default
-    #     ser.send_at_command('AT&W') # write to eeprom
-    #     ser.send_at_command('ATZ') # reboot
+    # Check if MAX_FREQ is provided as a command-line argument
+    if len(sys.argv) > 1:
+        try:
+            first_port = sys.argv[1]
+            second_port = sys.argv[2]
+            baud_rate = sys.argv[3]
+            min_freq = int(sys.argv[4])
+            max_freq = int(sys.argv[5])
+            air_speed = int(sys.argv[6])
+            if len(sys.argv) > 6:
+                power_tx = int(sys.argv[7])
+                requested_values['S4:TXPOWER'] = power_tx
+                
 
-    # with radio_utils.RadioModule(serial_port2, baud_rate2, timeout=1) as ser:  
-    #     ser.send_at_command('AT&F') # reset all parameters to factory default
-    #     ser.send_at_command('AT&W') # write to eeprom
-    #     ser.send_at_command('ATZ') # reboot
-    # radio_utils.time.sleep(3)
+            requested_values['S2:AIR_SPEED'] = air_speed
+            requested_values['S8:MIN_FREQ'] = min_freq
+            requested_values['S9:MAX_FREQ'] = max_freq
 
-    # serial_port, baud_rate = radio_utils.pick_pickables()
-    serial_port = 'COM7'
-    baud_rate = 115200
-    serial_port2 = 'COM5'
-    baud_rate2 = 115200
+        except ValueError:
+            print("Please enter a valid integer for MAX_FREQ.")
+            sys.exit(1)
+    else:
+        first_port = 'COM5'
+        baud_rate = 57600
+        # serial_port, baud_rate = radio_utils.pick_pickables()
+        
+
+    # First radio setup
+    serial_port = first_port
     transmitter = radio_utils.RadioModule(serial_port, baud_rate)
     receiver = radio_utils.RadioModule(serial_port2, baud_rate2)
 
@@ -54,18 +63,20 @@ if __name__ == '__main__':
 
 
     transmitter.set_params_to_request(requested_values)
-    receiver.set_params_to_request(requested_values)
-    transmitter.send_at_command('AT&W')
-    receiver.send_at_command('AT&W')
-    transmitter.send_at_command('ATO')
-    receiver.send_at_command('ATO')
-    print(transmitter.get_current_parameters())
-
+    # print(transmitter.send_at_command('ATI5'))
+    # transmitter.send_at_command('AT&W')
+    transmitter.leave_command_mode()
+    transmitter.send_at_command('ATZ')
 
 
     # print(transmitter.get_current_parameters())
 
-        
-        
+    if len(sys.argv) > 1:
+        # Second radio setup
+        serial_port = second_port
+        transmitter = radio_utils.RadioModule(serial_port, baud_rate)
+        transmitter.set_params_to_request(requested_values)
+        transmitter.leave_command_mode()
 
-    
+        # transmitter.send_at_command('AT&W')
+        

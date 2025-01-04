@@ -5,6 +5,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import radio_utils.radio_utils as radio_utils
 from time import time
 import matplotlib.pyplot as plt
+import pandas as pd
+from openpyxl import load_workbook  # Import to manage existing Excel files
+
 
 
 
@@ -26,6 +29,33 @@ def receive_data(serial_conn) -> str:
             pass
         if len(buff) == 50 and buff.endswith("S"):  # Full 50-byte message received
             return buff
+        
+def append_to_excel(filename, data):
+    """
+    Appends data to an existing Excel file or creates a new one if it doesn't exist.
+
+    Args:
+        filename (str): The path to the Excel file.
+        data (dict): The data to append as a dictionary of lists.
+    """
+    df = pd.DataFrame(data)
+
+    try:
+        # Try to open an existing workbook
+        with pd.ExcelWriter(filename, mode='a', if_sheet_exists='overlay', engine='openpyxl') as writer:
+            # Find the current max row in the existing sheet
+            book = writer.book
+            if 'Sheet1' in book.sheetnames:
+                sheet = book['Sheet1']
+                start_row = sheet.max_row
+            else:
+                start_row = 0
+
+            # Append the DataFrame starting from the next row
+            df.to_excel(writer, index=False, startrow=start_row, header=False)
+    except FileNotFoundError:
+        # If file doesn't exist, create a new one
+        df.to_excel(filename, index=False)
 
 def main():
     if len(sys.argv) > 1:
@@ -33,7 +63,7 @@ def main():
         min_freq = int(sys.argv[2])
         max_freq = int(sys.argv[3])
         reading_period = int(sys.argv[4])  # Message read duration in seconds
-        sending_frequency = int(sys.argv[5])  # Messages sent per second
+        sending_freq = int(sys.argv[5])  # Messages sent per second
         air_speed = int(sys.argv[6])
     else:
         selected_port = "COM5"
@@ -128,7 +158,7 @@ def main():
                     dziura_ts = sendTS - last_send_timestamp
                     dziury.append(dziura_ts)
                     delta_ts = dziura_ts / (num_of_lost_messages + 1)
-                    print("Last ts:", last_send_timestamp % 10000, "now ts", sendTS % 10000, "last_seq:", last_seqNum, "now_seq:", seqNum, "lost_msgs:", num_of_lost_messages, "delta_ts:", delta_ts)
+                    # print("Last ts:", last_send_timestamp % 10000, "now ts", sendTS % 10000, "last_seq:", last_seqNum, "now_seq:", seqNum, "lost_msgs:", num_of_lost_messages, "delta_ts:", delta_ts)
 
                     for i in range(num_of_lost_messages):
                         send_timestamps.append(last_send_timestamp + (i + 1) * int(delta_ts))
@@ -146,55 +176,32 @@ def main():
             if len(dziury) > 0:
                 dziury_avg = sum(dziury) / len(dziury)
                 pelne_avg = sum(pelne) / len(pelne)
-                print("Dziury:", dziury, "avg:", dziury_avg)
-                print("Pelne:", pelne, "avg:", pelne_avg)
+                # print("Dziury:", dziury, "avg:", dziury_avg)
+                # print("Pelne:", pelne, "avg:", pelne_avg)
 
-            plt.plot(send_timestamps, send_y, "b.", label="Sent Messages")
-            plt.plot(recv_timestamps, recv_y, "g.", label="Received Messages")
-            plt.plot(lost_timestamps, lost_y, "r.", label="Lost Messages")
-            plt.plot(wrong_timestamps, wrong_y, "y.", label="Incorrect Messages")
-            if len(lost_timestamps) > 0:
-                first_loss_after = lost_timestamps[0] - send_timestamps[0]
-                first_loss_seq = lost_y[0]
-            else:
-                first_loss_after = 0
-                if len(lost_y) == 0:
-                    first_loss_seq = 0
-                else:    
-                    first_loss_seq = lost_y[0]
-                
-            if 50*sending_frequency > detected_baud/10:
-                additional_text = f't_spd: {50*sending_frequency} B/s (more than Baud)\nmessages_sent: {len(send_y)}\nmessages received: {len(recv_y)}\nmessages lost: {len(lost_y)}\nbaud rate used: {detected_baud}\nfirst loss after: {first_loss_after} ms\nfirst message lost: {first_loss_seq}'
-            else:
-                additional_text = f't_spd: {50*sending_frequency} B/s\nmessages_sent: {len(send_y)}\nmessages received: {len(recv_y)}\nmessages lost: {len(lost_y)}\nbaud rate used: {detected_baud}\nfirst loss after: {first_loss_after} ms\nfirst message lost: {first_loss_seq}'
-            plt.text(0.05, 0.95, additional_text, ha='left', va='top', transform=plt.gca().transAxes, fontsize=8, bbox=dict(facecolor='white', alpha=0.7, edgecolor='black', boxstyle='round,pad=0.5'))
-            plt.legend()
-            plt.xlabel("Timestamp (ms)")
-            plt.ylabel("Sequence Number")
-            plt.title(f'a_spd: {air_speed} kb/s;  t_spd: {sending_frequency} messages/s; min_f: {min_freq}; max_f: {max_freq}', fontsize=10)
+            bandwidth = max_freq-min_freq
+            sending_freq = 50*sending_freq
+            output_filename = 'radio_test_results.xlsx'
+            data = {
+                'Messages sent': [len(send_timestamps)],
+                'Messages lost': [len(lost_timestamps)],
+                'Messages % lost': [(len(lost_timestamps) / len(send_timestamps))*100 if len(send_timestamps) > 0 else 0],
+                'Bandwidth (Hz)': [abs(bandwidth)],
+                'Sending speed (B/s)': [sending_freq],
+                'Airspeed (B/s)': [air_speed*1000/8],
+                'Baud rate / 10 (B/s)': [detected_baud / 10]
+            }
 
-            if len(sys.argv) > 1:
-                # Save the plot with a filename based on parameters
-                plot_filename = f'{air_speed}kbps_{reading_period}s_{sending_frequency}Hz_minf_{min_freq}_maxf_{max_freq}.png'
-                plt.savefig(plot_filename)
-                print(f'Plot saved as {plot_filename}')
-            else:
-                plt.show()
+            append_to_excel(output_filename, data)
+            print(f'Data appended to {output_filename}')
 
-            output_filename = 'lost_timestamps.txt'
-            # Open the file in write mode ('w'). If the file doesn't exist, it will be created.
-            with open(output_filename, 'w') as file:
-            # Write a header for clarity (optional)
-                file.write("Lost Timestamps:\n")
-                
-                # Write each timestamp from lost_timestamps on a new line
-                for timestamp in lost_timestamps:
-                    file.write(f"{timestamp}\n")
+            # Save the plot with a filename based on parameters
+            # plot_filename = f'{air_speed}kbps_{reading_period}s_{sending_frequency}Hz_minf_{min_freq}_maxf_{max_freq}.png'
 
     except radio_utils.serial.SerialException as e:
         print(f'Error: {e}')
-    # except Exception as e:
-        # print(f'Unexpected error: {e}')
+    except Exception as e:
+        print(f'Unexpected error: {e}')
 
 if __name__ == '__main__':
     main()

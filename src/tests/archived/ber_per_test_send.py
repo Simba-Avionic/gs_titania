@@ -3,12 +3,12 @@ import os
 # Add the parent directory to the system path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import radio_utils
-from radio_utils.calculations import average_reports
-import radio_utils.testing
+import radio_utils.radio_utils as radio_utils
+from tests.archived.calculations import average_reports
+import tests.archived.testing
 
 # Consts
-DEFAULT_PARAMS = radio_utils.testing.DEFAULT_PARAMS
+DEFAULT_PARAMS = tests.archived.testing.DEFAULT_PARAMS
 
 # Force set values (for convenience sake):
 DEFAULT_PARAMS['S4:TXPOWER'] = 20
@@ -25,7 +25,7 @@ def main():
 
     # transmitter.set_params_to_request(DEFAULT_PARAMS)
     
-    radio_utils.testing.send_packets_at_defined_speed(transmitter=transmitter,predefined_packets=radio_utils.testing.DEFAULT_PACKET_LIST_16B,number_of_packets_to_send=1024,speed=64)
+    tests.archived.testing.send_packets_at_defined_speed(transmitter=transmitter,predefined_packets=tests.archived.testing.DEFAULT_PACKET_LIST_16B,number_of_packets_to_send=1024,speed=64)
     
 
 if __name__ == "__main__":

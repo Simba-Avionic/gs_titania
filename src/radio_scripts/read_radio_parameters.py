@@ -3,7 +3,7 @@ import os
 # Add the parent directory to the system path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import radio_utils
+import radio_utils.radio_utils as radio_utils
 
 def main():
     selected_port, detected_baud = radio_utils.pick_pickables()
@@ -19,7 +19,7 @@ def main():
         print(radio.get_current_parameters())
         # Exit AT command mode
         i += 1
-    radio.leave_command_mode()
+
 
 if __name__ == '__main__':
     main()
