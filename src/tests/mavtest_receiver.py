@@ -32,7 +32,7 @@ def write_temp_to_csv(receiver:radio_utils.RadioModule):
     whole_report = receiver.get_output_data()
     if whole_report['temperature'] == -276: # try again
         whole_report = receiver.get_output_data()
-    csv_name = f"test_baud_{DEFAULT_CONFIG["baud_rate"]}_receiver.csv"
+    csv_name = f"test_baud_{DEFAULT_CONFIG['baud_rate']}_receiver.csv"
     testing.save_results_to_csv(csv_name,
                         POWER =DEFAULT_CONFIG_RADIO["S4:TXPOWER"],
                         BANDWIDTH = DEFAULT_CONFIG_RADIO["S9:MAX_FREQ"] - DEFAULT_CONFIG_RADIO["S8:MIN_FREQ"],
@@ -176,9 +176,9 @@ if __name__ == '__main__':
     # change_baud_wrapper(None,57) # run if baud rate got broken
     # radio_utils.reboot_radios(DEFAULT_CONFIG['port_receiver'],57600) # run if you hope that reset to default will do miracles
 
-    # test_1()
-    test_2() # ten dziad
+    test_1()
+    # test_2()
     # test_3()
-    # test_4() # i ten dziad
+    # test_4()
     # test_6()
     

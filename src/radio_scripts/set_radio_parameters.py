@@ -8,12 +8,12 @@ import radio_utils.radio_utils as radio_utils
 
 # Default requested values
 requested_values = {
-    # 'S0:FORMAT': 25, 
+    'S0:FORMAT': 25, 
     # 'S1:SERIAL_SPEED': 57,  # use change_baud.py for changing serial speed
     'S2:AIR_SPEED': 64, 
     'S3:NETID': 18, 
     'S4:TXPOWER': 20, 
-    'S5:ECC': 0, 
+    'S5:ECC': 1, 
     'S6:MAVLINK': 1, 
     'S7:OPPRESEND': 1, 
     'S8:MIN_FREQ': 433070, # Default value; can be overridden
@@ -49,7 +49,7 @@ if __name__ == '__main__':
             print("Please enter a valid integer for MAX_FREQ.")
             sys.exit(1)
     else:
-        first_port = 'COM5'
+        first_port = '/dev/ttyUSB1'
         baud_rate = 57600
         # serial_port, baud_rate = radio_utils.pick_pickables()
         
@@ -57,16 +57,19 @@ if __name__ == '__main__':
     # First radio setup
     serial_port = first_port
     transmitter = radio_utils.RadioModule(serial_port, baud_rate)
-    receiver = radio_utils.RadioModule(serial_port2, baud_rate2)
+    # receiver = radio_utils.RadioModule(serial_port2, baud_rate2)
 
     print(transmitter.get_current_parameters())
 
 
-    transmitter.set_params_to_request(requested_values)
+    # transmitter.set_params_to_request(requested_values)
+    
     # print(transmitter.send_at_command('ATI5'))
     # transmitter.send_at_command('AT&W')
-    transmitter.leave_command_mode()
-    transmitter.send_at_command('ATZ')
+
+    # transmitter.leave_command_mode()
+
+    # transmitter.send_at_command('ATZ')
 
 
     # print(transmitter.get_current_parameters())
