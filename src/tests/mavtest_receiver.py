@@ -9,9 +9,11 @@ import radio_utils.radio_utils as radio_utils
 import time,math
 from radio_scripts.change_baud import change_baud
 
+PORT = "COM9"
+
 def run_test():
     # Test exec
-    receiver = testing.MAVTestNode(DEFAULT_CONFIG,DEFAULT_CONFIG_RADIO,is_receiver=True)
+    receiver = testing.MAVTestNode(PORT, DEFAULT_CONFIG,DEFAULT_CONFIG_RADIO,is_receiver=True)
     print(f"TRANSMIT RATE: {DEFAULT_CONFIG['transmit_rate']}")
     receiver.run()
     receiver.close_connection()
@@ -19,14 +21,14 @@ def run_test():
 
 def change_baud_wrapper(initial_buad_rate,new_baud_rate):
         if initial_buad_rate == None or 0:
-            initial_buad_rate = radio_utils.detect_baud_rate(DEFAULT_CONFIG["port_receiver"])
+            initial_buad_rate = radio_utils.detect_baud_rate(PORT)
             if initial_buad_rate == math.floor(new_baud_rate/1000):
                 print("already set to target baud rate")
                 return
-            change_baud(first_port=DEFAULT_CONFIG["port_receiver"],initial_baud_rate=initial_buad_rate,new_baud_rate=new_baud_rate)
-        elif not change_baud(first_port=DEFAULT_CONFIG["port_receiver"],initial_baud_rate=initial_buad_rate,new_baud_rate=new_baud_rate):
-            initial_buad_rate = radio_utils.detect_baud_rate(DEFAULT_CONFIG["port_receiver"])
-            change_baud(first_port=DEFAULT_CONFIG["port_receiver"],initial_baud_rate=initial_buad_rate,new_baud_rate=new_baud_rate)
+            change_baud(first_port=PORT,initial_baud_rate=initial_buad_rate,new_baud_rate=new_baud_rate)
+        elif not change_baud(first_port=PORT,initial_baud_rate=initial_buad_rate,new_baud_rate=new_baud_rate):
+            initial_buad_rate = radio_utils.detect_baud_rate(PORT)
+            change_baud(first_port=PORT,initial_baud_rate=initial_buad_rate,new_baud_rate=new_baud_rate)
 
 def write_temp_to_csv(receiver:radio_utils.RadioModule):
     whole_report = receiver.get_output_data()
@@ -52,7 +54,7 @@ def test_1(): # airspeeds and transmit rates changing, constant power, constant 
 
     for air_speed in TEST_1_AIRSPEEDS:
         # setup
-        receiver = radio_utils.RadioModule(DEFAULT_CONFIG["port_receiver"],DEFAULT_CONFIG["baud_rate"])
+        receiver = radio_utils.RadioModule(PORT,DEFAULT_CONFIG["baud_rate"])
         
         DEFAULT_CONFIG_RADIO['S2:AIR_SPEED'] = air_speed
         receiver.set_params_to_request(DEFAULT_CONFIG_RADIO)
@@ -67,13 +69,13 @@ def test_1(): # airspeeds and transmit rates changing, constant power, constant 
             DEFAULT_CONFIG["transmit_rate"] = transmit_rate
             run_test()
             # finish
-            input("Click enter to continue (receiver/transmitter ready for next subtest)")
+            # input("Click enter to continue (receiver/transmitter ready for next subtest)")
 
 def test_2(): # airspeeds and transmit rates changing, constant power, constant bandwidth
 
     for max_freq in TEST_2_MAX_FREQ:
         # setup
-        receiver = radio_utils.RadioModule(DEFAULT_CONFIG["port_receiver"],DEFAULT_CONFIG["baud_rate"])
+        receiver = radio_utils.RadioModule(PORT,DEFAULT_CONFIG["baud_rate"])
         
         DEFAULT_CONFIG_RADIO['S9:MAX_FREQ'] = max_freq
         receiver.set_params_to_request(DEFAULT_CONFIG_RADIO)
@@ -99,12 +101,12 @@ def test_3(): # baud and transmit rates changing
     for i in range(len(TEST_3_BAUD_RATE)):
 
         if first_subtest:
-            receiver = radio_utils.RadioModule(DEFAULT_CONFIG["port_receiver"],TEST_3_BAUD_RATE[0])
+            receiver = radio_utils.RadioModule(PORT,TEST_3_BAUD_RATE[0])
             receiver.set_params_to_request(DEFAULT_CONFIG_RADIO)
             first_subtest = False
         else:
             change_baud_wrapper(TEST_3_BAUD_RATE[i-1],TEST_3_SERIAL_SPEED[i])
-            receiver =radio_utils.RadioModule(DEFAULT_CONFIG["port_receiver"],TEST_3_BAUD_RATE[i])            
+            receiver =radio_utils.RadioModule(PORT,TEST_3_BAUD_RATE[i])            
         # setup
         DEFAULT_CONFIG["baud_rate"] = TEST_3_BAUD_RATE[i]
         write_temp_to_csv(receiver)
@@ -123,7 +125,7 @@ def test_3(): # baud and transmit rates changing
 def test_4(): # % of duty_cycle changing
     for duty_cycle in TEST_5_DUTY_CYCLE:
         # setup
-        receiver = radio_utils.RadioModule(DEFAULT_CONFIG["port_receiver"],DEFAULT_CONFIG["baud_rate"])
+        receiver = radio_utils.RadioModule(PORT,DEFAULT_CONFIG["baud_rate"])
         DEFAULT_CONFIG_RADIO['S11:DUTY_CYCLE'] = duty_cycle
         receiver.set_params_to_request(DEFAULT_CONFIG_RADIO)
         write_temp_to_csv(receiver)
@@ -142,7 +144,7 @@ def test_4(): # % of duty_cycle changing
 def test_5(): # duty cycle changing
     for num_channels in TEST_4_NUM_CHANNELS:
         # setup
-        receiver = radio_utils.RadioModule(DEFAULT_CONFIG["port_receiver"],DEFAULT_CONFIG["baud_rate"])
+        receiver = radio_utils.RadioModule(PORT,DEFAULT_CONFIG["baud_rate"])
         DEFAULT_CONFIG_RADIO['S10:NUM_CHANNELS'] = num_channels
         receiver.set_params_to_request(DEFAULT_CONFIG_RADIO)
         write_temp_to_csv(receiver)
@@ -160,7 +162,7 @@ def test_5(): # duty cycle changing
 
 def test_6(): # do bawienia sie, dluuuugie nadawanie i odbieranie
     # setup
-    receiver = radio_utils.RadioModule(DEFAULT_CONFIG["port_receiver"],DEFAULT_CONFIG["baud_rate"])
+    receiver = radio_utils.RadioModule(PORT,DEFAULT_CONFIG["baud_rate"])
     receiver.set_params_to_request(DEFAULT_CONFIG_RADIO)
     DEFAULT_CONFIG["target_packets_amount"] = 40000000000
     write_temp_to_csv(receiver)

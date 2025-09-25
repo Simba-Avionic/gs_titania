@@ -12,7 +12,7 @@ TEST_DISTANCES = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4]
 # Test1: AIR_SPEED variation
 # --------------------------
 TEST_1_AIRSPEEDS = [32, 64, 128, 250]       # reprezentatywne prędkości
-TEST_1_TRANSMIT_RATES = [1, 8, 15]          # realistyczne transmit_rates
+TEST_1_TRANSMIT_RATES = [1, 8, 15]          # realistyczne transmit_rates (packets per second)
 
 # --------------------------
 # Test2: BANDWIDTH / MAX_FREQ variation
@@ -42,7 +42,7 @@ TEST_5_TRANSMIT_RATES = [1, 8, 15]          # najważniejsze transmit_rates
 # --------------------------
 # Test6: TX_POWER variation
 # --------------------------
-TEST_6_TX_POWER = [5, 10, 20]               # niska, średnia i maksymalna moc
+TEST_6_TX_POWER = [5, 11, 17]               # niska, średnia i maksymalna moc
 TEST_6_TRANSMIT_RATES = [1, 8, 15]
 
 # --------------------------
@@ -65,6 +65,10 @@ TEST_9_AIRSPEED = [250]
 TEST_9_TX_POWER = [5]
 TEST_9_TRANSMIT_RATE = [15]
 
+TEST_10_TX_POWER = [11, 14, 17]
+TEST_10_AIR_SPEED = [64, 128, 250]
+TEST_10_ECC = [0, 1]
+
 # --------------------------
 # DEFAULT RADIO CONFIG
 # --------------------------
@@ -73,7 +77,7 @@ DEFAULT_CONFIG_RADIO = {
     'S1:SERIAL_SPEED': 57, 
     'S2:AIR_SPEED': 96, 
     'S3:NETID': 18, 
-    'S4:TXPOWER': 20, 
+    'S4:TXPOWER': 17, 
     'S5:ECC': 0, 
     'S6:MAVLINK': 1, 
     'S7:OPPRESEND': 0, 
@@ -91,13 +95,13 @@ DEFAULT_CONFIG_RADIO = {
 # DEFAULT CONFIG FOR TESTING
 # --------------------------
 DEFAULT_CONFIG = {
-    "port_receiver": "/dev/ttyUSB0",
-    "port_transmitter": "/dev/ttyUSB1",
+    # "port_receiver": "/dev/ttyUSB0",
+    # "port_transmitter": "/dev/ttyUSB1",
     "baud_rate": 57600,
     "transmit_rate": 4,
     "override_rate": 1,
     "show_received_data": False,
     "set_rtscts": False,
-    "target_packets_amount": 300
+    "target_packets_amount": 200
 }
 

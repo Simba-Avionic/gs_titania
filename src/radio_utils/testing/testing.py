@@ -179,8 +179,8 @@ class PacketStats(object):
         return return_message
     
 class MAVTestNode:
-    def __init__(self, config, config_radio, is_receiver=False):
-        self.port = config["port_receiver"] if is_receiver else config["port_transmitter"]
+    def __init__(self, port, config, config_radio, is_receiver=False):
+        self.port = port
         self.baud_rate = config["baud_rate"]
         self.transmit_rate = config.get("transmit_rate", 0)
         self.override_rate = config.get("override_rate", 0)
@@ -288,11 +288,10 @@ class MAVTestNode:
                         L_NOISE = self.stats.module_local_noise,
                         R_NOISE = self.stats.module_remote_noise,
                         PACKETS_LOST_TOTAL = self.stats.total_mav_loss,
-                        PER = self.stats.per,
-                        TEMPERATURE = 0
+                        PER = self.stats.per
                         )
 
-    def run(self):
+    def run(self, on_update=None):
         """Main loop for MAVLink node testing."""
         last_report = time.time()
         beginning_of_the_test_time = last_report
@@ -314,10 +313,13 @@ class MAVTestNode:
 
                 if time.time() - last_report >= 1: # print status every second
                     self.stats.update_stats() # threading black magic shenanigans? <--- faster if updated outside the if statement 
+                    if on_update:
+                        on_update(self.stats)
                     print(f"{'Receiver' if self.is_receiver else 'Transmitter'} stats: ")
                     print(self.stats)
                     if self.stats.module_bytes_sent_now > 300 or self.stats.module_bytes_received_now > 80: # arbitrary numbers
-                        self.save_stats_to_csv()
+                        # self.save_stats_to_csv()
+                        pass
                     last_report = time.time()
 
                 time.sleep(0.000000001) # threading black magic shenanigans? <---- queue read is instantenious thanks to this
@@ -332,7 +334,7 @@ class MAVTestNode:
             self.stats.update_stats()
             print(f"{'Receiver' if self.is_receiver else 'Transmitter'} last stats: ")
             print(self.stats)
-            self.save_stats_to_csv()
+            # self.save_stats_to_csv()
             test_time = time.time() - beginning_of_the_test_time
             if self.is_receiver:
                 print(f"Receiver has reached the target of {self.target_packets_amount} packets (of which {self.stats.total_mav_loss} were lost) received in {test_time}s.")
@@ -347,5 +349,5 @@ class MAVTestNode:
             print(f"{'Receiver' if self.is_receiver else 'Transmitter'} last stats: ")
             self.stats.update_stats()
             print(self.stats)
-            self.save_stats_to_csv()
+            # self.save_stats_to_csv()
 
